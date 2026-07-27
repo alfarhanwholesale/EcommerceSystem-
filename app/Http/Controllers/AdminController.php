@@ -398,6 +398,75 @@ class AdminController extends Controller
     }
 
     // ----------------------------------------------------
+    // OUTDOOR SALES AGENT: LOG SALES
+    // ----------------------------------------------------
+
+    public function logOutdoorSale(Request $request)
+    {
+        $this->checkAccess(['admin', 'outdoor_sales']);
+
+        $request->validate([
+            'product_id'           => 'required|exists:products,id',
+            'product_variation_id' => 'nullable|exists:product_variations,id',
+            'quantity'             => 'required|integer|min:1',
+            'customer_name'        => 'required|string|max:255',
+            'customer_phone'       => 'nullable|string|max:50',
+            'delivery_address'     => 'nullable|string|max:500',
+        ]);
+
+        $product = Product::with('variations')->findOrFail($request->product_id);
+        $variation = null;
+
+        if ($request->filled('product_variation_id')) {
+            $variation = ProductVariation::where('product_id', $product->id)->findOrFail($request->product_variation_id);
+            if ($variation->stock < $request->quantity) {
+                return back()->with('error', "Stok tidak mencukupi untuk variasi '{$variation->value}'. Stok semasa: {$variation->stock}");
+            }
+            $unitPrice = $variation->active_price;
+        } else {
+            if ($product->stock < $request->quantity) {
+                return back()->with('error', "Stok tidak mencukupi untuk produk '{$product->name}'. Stok semasa: {$product->stock}");
+            }
+            $unitPrice = $product->active_price;
+        }
+
+        $totalAmount = $unitPrice * $request->quantity;
+
+        // Create Order record
+        $order = Order::create([
+            'user_id'          => null,
+            'created_by'        => Auth::id(),
+            'order_type'        => 'outdoor',
+            'customer_name'     => $request->customer_name,
+            'customer_phone'    => $request->customer_phone,
+            'delivery_address'  => $request->delivery_address ?: 'Outdoor Event Sale',
+            'total_amount'      => $totalAmount,
+            'discount_amount'   => 0,
+            'final_amount'      => $totalAmount,
+            'status'            => 'completed',
+            'paid_at'           => now(),
+        ]);
+
+        // Create OrderItem record
+        OrderItem::create([
+            'order_id'             => $order->id,
+            'product_id'           => $product->id,
+            'product_variation_id' => $variation ? $variation->id : null,
+            'quantity'             => $request->quantity,
+            'price'                => $unitPrice,
+        ]);
+
+        // Deduct inventory stock
+        if ($variation) {
+            $variation->decrement('stock', $request->quantity);
+        } else {
+            $product->decrement('stock', $request->quantity);
+        }
+
+        return back()->with('success', "Jualan outdoor untuk '{$product->name}' (x{$request->quantity}) berjaya direkodkan!");
+    }
+
+    // ----------------------------------------------------
     // REPORTS GENERATION
     // ----------------------------------------------------
 

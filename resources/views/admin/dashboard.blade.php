@@ -78,16 +78,24 @@
                     @csrf
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Select Product -->
-                        <div>
-                            <label for="sales-product-select" class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">Product Item</label>
-                            <select name="product_id" id="sales-product-select" onchange="updateSalesVariations()" required
-                                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
-                                <option value="">Select product...</option>
-                                @foreach($productsDropdown as $p)
-                                    <option value="{{ $p->id }}">{{ $p->name }}</option>
-                                @endforeach
-                            </select>
+                        <!-- Search Product Text Input -->
+                        <div class="relative">
+                            <label for="sales-product-search" class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">Product Item (Search System)</label>
+                            <div class="relative">
+                                <input type="text" id="sales-product-search" autocomplete="off" placeholder="Type product name or ID to check..."
+                                       class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all pr-8"
+                                       onkeyup="filterProducts()" onfocus="showProductDropdown()">
+                                <button type="button" id="clear-product-btn" onclick="clearProductSelection()" class="hidden absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold">✕</button>
+                            </div>
+                            <input type="hidden" name="product_id" id="sales-product-id" required>
+
+                            <!-- System Verification Status Badge -->
+                            <div id="product-status-badge" class="mt-1.5 text-xs font-semibold hidden"></div>
+
+                            <!-- Live Suggestions Dropdown Overlay -->
+                            <div id="sales-product-dropdown" class="hidden absolute z-30 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto divide-y divide-slate-100">
+                                <!-- Filled by JS -->
+                            </div>
                         </div>
 
                         <!-- Select Variation -->
@@ -302,19 +310,155 @@
 
 </div>
 
-<!-- Dropdown variation population Javascript logic -->
+<!-- Dropdown variation population and live product search Javascript logic -->
 <script>
     // Inject variables
+    const productsList = @json($productsDropdown);
     const productVariations = @json($productsDropdown->mapWithKeys(fn($p) => [$p->id => $p->variations]));
 
-    // Outdoor sales dropdown listener
+    let selectedProductId = null;
+
+    function showProductDropdown() {
+        filterProducts();
+    }
+
+    function filterProducts() {
+        const searchInput = document.getElementById('sales-product-search');
+        const dropdown = document.getElementById('sales-product-dropdown');
+        if (!searchInput || !dropdown) return;
+
+        const query = searchInput.value.trim().toLowerCase();
+
+        // If typing changed away from selected product name, reset selection
+        if (selectedProductId) {
+            const currentSelected = productsList.find(p => p.id == selectedProductId);
+            if (currentSelected && searchInput.value.trim() !== currentSelected.name) {
+                clearProductSelection(false);
+            }
+        }
+
+        const filtered = productsList.filter(p => 
+            p.name.toLowerCase().includes(query) || 
+            p.id.toString() === query ||
+            (p.category && p.category.toLowerCase().includes(query))
+        );
+
+        if (filtered.length === 0) {
+            dropdown.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center italic">No product found matching "${escapeHtml(searchInput.value)}"</div>`;
+            dropdown.classList.remove('hidden');
+            updateVerificationBadge(false, 'Product not found in system.');
+            return;
+        }
+
+        let html = '';
+        filtered.forEach(p => {
+            const activePrice = (p.discount_price !== null && p.discount_price > 0 && p.discount_price < p.base_price) 
+                ? p.discount_price 
+                : p.base_price;
+            const stockText = p.stock > 0 ? `${p.stock} units` : 'Out of stock';
+            const stockColor = p.stock > 0 ? 'text-emerald-700 font-medium' : 'text-rose-600 font-bold';
+            
+            html += `
+                <div onclick="selectProduct(${p.id})" class="p-2.5 hover:bg-emerald-50 cursor-pointer transition-colors flex items-center justify-between">
+                    <div>
+                        <span class="font-bold text-slate-800 block text-sm">${escapeHtml(p.name)}</span>
+                        <span class="text-[11px] text-slate-500">ID: #${p.id} ${p.category ? '| Category: ' + escapeHtml(p.category) : ''}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-bold text-slate-900 block text-xs">RM${parseFloat(activePrice).toFixed(2)}</span>
+                        <span class="text-[11px] ${stockColor}">${stockText}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        dropdown.innerHTML = html;
+        dropdown.classList.remove('hidden');
+
+        if (!selectedProductId && query.length > 0) {
+            const exactMatch = productsList.find(p => p.name.toLowerCase() === query || p.id.toString() === query);
+            if (exactMatch) {
+                selectProduct(exactMatch.id);
+            } else {
+                updateVerificationBadge(false, `${filtered.length} matching products found in system. Please select one.`);
+            }
+        } else if (!selectedProductId && query.length === 0) {
+            updateVerificationBadge(false, '');
+        }
+    }
+
+    function selectProduct(id) {
+        const prod = productsList.find(p => p.id == id);
+        if (!prod) return;
+
+        selectedProductId = prod.id;
+        document.getElementById('sales-product-id').value = prod.id;
+        document.getElementById('sales-product-search').value = prod.name;
+        document.getElementById('sales-product-dropdown').classList.add('hidden');
+        document.getElementById('clear-product-btn').classList.remove('hidden');
+
+        const activePrice = (prod.discount_price !== null && prod.discount_price > 0 && prod.discount_price < prod.base_price) 
+            ? prod.discount_price 
+            : prod.base_price;
+            
+        updateVerificationBadge(true, `Verified system product: ${prod.name} (Stock: ${prod.stock} | RM${parseFloat(activePrice).toFixed(2)})`);
+
+        updateSalesVariations();
+    }
+
+    function clearProductSelection(clearInput = true) {
+        selectedProductId = null;
+        document.getElementById('sales-product-id').value = '';
+        if (clearInput) {
+            document.getElementById('sales-product-search').value = '';
+            document.getElementById('clear-product-btn').classList.add('hidden');
+            document.getElementById('sales-product-dropdown').classList.add('hidden');
+            updateVerificationBadge(false, '');
+        }
+        updateSalesVariations();
+    }
+
+    function updateVerificationBadge(isVerified, message) {
+        const badge = document.getElementById('product-status-badge');
+        if (!badge) return;
+        if (!message) {
+            badge.classList.add('hidden');
+            badge.innerHTML = '';
+            return;
+        }
+        badge.classList.remove('hidden');
+        if (isVerified) {
+            badge.className = 'mt-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md p-2 flex items-center gap-1.5';
+            badge.innerHTML = `<span>✓</span> <span>${escapeHtml(message)}</span>`;
+        } else {
+            badge.className = 'mt-1.5 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-2 flex items-center gap-1.5';
+            badge.innerHTML = `<span>⚠️</span> <span>${escapeHtml(message)}</span>`;
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text).replace(/[&<>"']/g, function(m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+        });
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('sales-product-dropdown');
+        const searchInput = document.getElementById('sales-product-search');
+        if (dropdown && searchInput && !dropdown.contains(e.target) && e.target !== searchInput) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    // Outdoor sales variation listener
     function updateSalesVariations() {
-        const prodSelect = document.getElementById('sales-product-select');
         const varWrapper = document.getElementById('sales-variation-wrapper');
         const varSelect = document.getElementById('sales-variation-select');
-        if(!prodSelect) return;
+        if (!varWrapper || !varSelect) return;
 
-        const prodId = prodSelect.value;
+        const prodId = selectedProductId || document.getElementById('sales-product-id').value;
         if (!prodId || !productVariations[prodId] || productVariations[prodId].length === 0) {
             varWrapper.classList.add('hidden');
             varSelect.removeAttribute('required');
@@ -327,12 +471,9 @@
         
         let html = '<option value="">Select variation...</option>';
         productVariations[prodId].forEach(v => {
-            html += `<option value="${v.id}">${v.name}: ${v.value} ($${parseFloat(v.price || 0).toFixed(2)}) [Stock: ${v.stock}]</option>`;
+            html += `<option value="${v.id}">${v.name}: ${v.value} (RM${parseFloat(v.price || 0).toFixed(2)}) [Stock: ${v.stock}]</option>`;
         });
         varSelect.innerHTML = html;
     }
-
-    // Admin Panel is missing Purchaser role since we replaced it.
-    // The previous updateRestockVariations method is now safely removed.
 </script>
 @endsection
