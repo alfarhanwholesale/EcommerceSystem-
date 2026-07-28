@@ -216,12 +216,12 @@
                     <div class="flex gap-2">
                         <input type="number" name="variation_stock" id="variation_stock" required min="0" value="0"
                                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
-                        <button type="submit" 
-                                class="bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2 px-3 rounded-lg text-xs uppercase tracking-wider transition-colors shrink-0">
-                            Add Option
-                        </button>
+                               </div>
+                            <button type="submit" 
+                                    class="bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2 px-3 rounded-lg text-xs uppercase tracking-wider transition-colors shrink-0">
+                                Add Option
+                            </button>
                     </div>
-                </div>
             </form>
         </div>
     </div>
