@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     | Supported: "toyyibpay", "billplz"
     */
-    'gateway' => env('PAYMENT_GATEWAY', 'billplz'),
+    'gateway' => env('PAYMENT_GATEWAY', 'toyyibpay'),
 
     /*
     |--------------------------------------------------------------------------
