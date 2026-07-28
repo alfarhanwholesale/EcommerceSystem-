@@ -15,22 +15,35 @@ class PaymentController extends Controller
     /**
      * Initiate FPX / eWallet payment for an existing order.
      */
-    public function checkout($order_id): RedirectResponse
+    /**
+     * Initiate FPX / eWallet payment for an existing order.
+     */
+    public function checkout(Request $request, $order_id): RedirectResponse
     {
-        $order = Order::query()
-            ->where('user_id', Auth::id())
-            ->findOrFail($order_id);
+        $user  = Auth::user();
+        $token = $request->query('token');
+
+        if ($user) {
+            $order = Order::where('user_id', $user->id)->findOrFail($order_id);
+        } elseif ($token) {
+            $order = Order::where('id', $order_id)->where('guest_token', $token)->firstOrFail();
+        } else {
+            $order = Order::findOrFail($order_id);
+        }
 
         if ($order->status === 'paid') {
+            $params = ['id' => $order->id];
+            if ($order->guest_token) $params['token'] = $order->guest_token;
             return redirect()
-                ->route('checkout.success', $order->id)
-                ->with('success', 'This order is already paid.');
+                ->route('checkout.success', $params)
+                ->with('success', 'Pesanan ini telah dibayar.');
         }
 
         if (! in_array($order->status, ['pending'], true)) {
-            return redirect()
-                ->route('customer.orders')
-                ->with('error', 'This order cannot be paid at this time.');
+            if ($user) {
+                return redirect()->route('customer.orders')->with('error', 'Pesanan ini tidak boleh dibayar pada masa ini.');
+            }
+            return redirect()->route('shop.index')->with('error', 'Pesanan ini tidak boleh dibayar pada masa ini.');
         }
 
         return match (config('payment.gateway')) {
@@ -45,15 +58,26 @@ class PaymentController extends Controller
     public function status(Request $request): RedirectResponse
     {
         $orderId = $request->integer('order_id');
+        $token   = $request->query('token');
+        $user    = Auth::user();
 
-        $order = Order::query()
-            ->where('user_id', Auth::id())
-            ->findOrFail($orderId);
+        if ($user) {
+            $order = Order::where('user_id', $user->id)->findOrFail($orderId);
+        } elseif ($token) {
+            $order = Order::where('id', $orderId)->where('guest_token', $token)->firstOrFail();
+        } else {
+            $order = Order::findOrFail($orderId);
+        }
 
         $isPaid = match (config('payment.gateway')) {
             'billplz' => $request->boolean('paid'),
             default   => (string) $request->input('status_id') === '1',
         };
+
+        $successParams = ['id' => $order->id];
+        if ($order->guest_token) {
+            $successParams['token'] = $order->guest_token;
+        }
 
         if ($isPaid || $order->status === 'paid') {
             // Mark as paid if webhook hasn't already done so
@@ -62,19 +86,21 @@ class PaymentController extends Controller
             }
 
             return redirect()
-                ->route('checkout.success', $order->id)
-                ->with('success', 'Payment received. Thank you!');
+                ->route('checkout.success', $successParams)
+                ->with('success', 'Bayaran berjaya diterima. Terima kasih!');
         }
 
         if ((string) $request->input('status_id') === '2') {
-            return redirect()
-                ->route('customer.orders')
-                ->with('info', 'Payment is still pending.');
+            if ($user) {
+                return redirect()->route('customer.orders')->with('info', 'Pembayaran masih dalam proses.');
+            }
+            return redirect()->route('checkout.success', $successParams)->with('info', 'Pembayaran masih dalam proses.');
         }
 
-        return redirect()
-            ->route('customer.orders')
-            ->with('error', 'Payment was not completed.');
+        if ($user) {
+            return redirect()->route('customer.orders')->with('error', 'Pembayaran tidak dilengkapkan.');
+        }
+        return redirect()->route('shop.index')->with('error', 'Pembayaran tidak dilengkapkan.');
     }
 
     /**
@@ -107,12 +133,12 @@ class PaymentController extends Controller
             'sandbox'    => $isSandbox,
         ]);
 
-        // ── Sandbox simulation shortcut ─────────────────────────────────────
-        // Jika sandbox aktif, cuba sambung ke API. Kalau gagal (API tidak
-        // dapat dihubungi / credentials belum diluluskan), simulate terus
-        // supaya flow checkout boleh diuji sepenuhnya.
-        // ────────────────────────────────────────────────────────────────────
         try {
+            $returnParams = ['order_id' => $order->id];
+            if ($order->guest_token) {
+                $returnParams['token'] = $order->guest_token;
+            }
+
             $response = Http::timeout(15)
                 ->asForm()
                 ->post("{$config['base_url']}/index.php/api/createBill", [
@@ -123,7 +149,7 @@ class PaymentController extends Controller
                     'billPriceSetting'       => 1,
                     'billPayorInfo'          => 1,
                     'billAmount'             => $amountInSen,
-                    'billReturnUrl'          => route('checkout.payment.status', ['order_id' => $order->id]),
+                    'billReturnUrl'          => route('checkout.payment.status', $returnParams),
                     'billCallbackUrl'        => route('webhook.payment'),
                     'billExternalReferenceNo'=> (string) $order->id,
                     'billTo'                 => $order->customer_name ?? 'Customer',

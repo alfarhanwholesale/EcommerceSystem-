@@ -57,6 +57,10 @@ Route::get('/checkout/shipping-rates', [CheckoutController::class, 'getShippingR
 Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 Route::get('/checkout/success/{id}', [CheckoutController::class, 'success'])->name('checkout.success');
 
+// Online Banking (FPX) & eWallet payment via gateway (Guest & Auth)
+Route::get('/checkout/payment/{order_id}', [PaymentController::class, 'checkout'])->name('checkout.payment');
+Route::get('/checkout/payment/status', [PaymentController::class, 'status'])->name('checkout.payment.status');
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Authentication Routes
 // ─────────────────────────────────────────────────────────────────────────────
@@ -99,10 +103,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/coupon/claim', [CartController::class, 'claimCoupon'])->name('coupon.claim');
         Route::post('/coupon/apply', [CartController::class, 'applyCoupon'])->name('coupon.apply');
         Route::post('/coupon/remove', [CartController::class, 'removeCoupon'])->name('coupon.remove');
-
-        // Online Banking (FPX) & eWallet payment via local gateway
-        Route::get('/checkout/payment/{order_id}', [PaymentController::class, 'checkout'])->name('checkout.payment');
-        Route::get('/checkout/payment/status', [PaymentController::class, 'status'])->name('checkout.payment.status');
 
         // Customer Profile Orders History
         Route::get('/orders', [CheckoutController::class, 'orders'])->name('customer.orders');
