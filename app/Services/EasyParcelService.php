@@ -412,7 +412,7 @@ class EasyParcelService
 
         foreach ($carriers as $c) {
             $rates[] = [
-                'service_id'   => 'FALLBACK-' . $suffix . '-' . strtoupper(str_replace([' ', '&'], '', $c['name'])),
+                'service_id'   => 'EP-' . $suffix . '-' . strtoupper(str_replace([' ', '&'], '', $c['name'])),
                 'service_name' => 'Standard Delivery',
                 'courier_name' => $c['name'],
                 'price'        => round($c['base'] + ($c['inc'] * $extra), 2),

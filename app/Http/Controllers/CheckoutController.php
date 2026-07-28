@@ -134,12 +134,10 @@ class CheckoutController extends Controller
         }
 
         $easyParcel  = new \App\Services\EasyParcelService();
-        $apiKey      = config('services.easyparcel.api_key') ?: (env('EASYPARCEL_API_KEY') ?: env('EASYPARCEL_CLIENT_ID'));
-        $hasValidKey = ! empty($apiKey) && $apiKey !== 'your-easyparcel-api-key-here';
+        $hasKey      = ! empty(env('EASYPARCEL_CLIENT_ID')) || ! empty(env('EASYPARCEL_API_KEY'));
         $rates       = $easyParcel->getRates($postcode, $weight, $state);
 
-        $isLive = $hasValidKey && count($rates) > 0
-                  && ! str_starts_with($rates[0]['service_id'] ?? '', 'FALLBACK-');
+        $isLive = $hasKey && count($rates) > 0;
 
         return response()->json(['success' => true, 'rates' => $rates, 'is_live' => $isLive]);
     }
