@@ -139,33 +139,6 @@
                     </button>
                 </div>
 
-                <!-- BULK EDIT TOOLBAR -->
-                <div id="bulk-edit-bar" class="hidden bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                            ⚡ Sunting Pukal (Bulk Edit)
-                        </span>
-                        <span class="text-[10px] text-slate-400">Isi di bawah dan klik "Apply to All" untuk kemas kini semua baris sekaligus.</span>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Pukal (RM)</label>
-                            <input type="number" id="bulk-price" step="0.01" min="0" placeholder="cth: 25.00"
-                                   class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-600">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Stok Pukal (Unit)</label>
-                            <input type="number" id="bulk-stock" min="0" placeholder="cth: 50"
-                                   class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-600">
-                        </div>
-                        <div>
-                            <button type="button" id="apply-bulk-btn"
-                                    class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-3 rounded-lg text-xs transition-all shadow-xs">
-                                Apply to All (Kemas Kini Semua)
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Matrix Variation Table Rows Container -->
                 <div id="variations-container" class="space-y-3">
@@ -220,9 +193,7 @@
         const variationFields = document.getElementById('variation-product-fields');
         const variationsContainer = document.getElementById('variations-container');
         const noNotice = document.getElementById('no-variation-notice');
-        const bulkBar = document.getElementById('bulk-edit-bar');
         const addBtn = document.getElementById('add-variation-btn');
-        const applyBulkBtn = document.getElementById('apply-bulk-btn');
 
         let varIdx = 0;
 
@@ -250,16 +221,14 @@
                 document.getElementById('stock').readOnly = false;
             }
 
-            updateBulkBarState();
+            updateNoNotice();
         }
 
-        function updateBulkBarState() {
-            if (variationsContainer.children.length > 0 && toggle.checked) {
+        function updateNoNotice() {
+            if (variationsContainer.children.length > 0) {
                 noNotice.classList.add('hidden');
-                bulkBar.classList.remove('hidden');
             } else {
                 noNotice.classList.remove('hidden');
-                bulkBar.classList.add('hidden');
             }
         }
 
@@ -303,26 +272,14 @@
                     toggle.checked = false;
                     updateUIState();
                 } else {
-                    updateBulkBarState();
+                    updateNoNotice();
                 }
             });
 
             variationsContainer.appendChild(row);
-            updateBulkBarState();
+            updateNoNotice();
         }
 
-        // Apply Bulk Edit to all variation rows in 1 click
-        applyBulkBtn.addEventListener('click', function () {
-            const bulkPrice = document.getElementById('bulk-price').value;
-            const bulkStock = document.getElementById('bulk-stock').value;
-
-            document.querySelectorAll('.var-price-input').forEach(input => {
-                if (bulkPrice !== '') input.value = bulkPrice;
-            });
-            document.querySelectorAll('.var-stock-input').forEach(input => {
-                if (bulkStock !== '') input.value = bulkStock;
-            });
-        });
 
         toggle.addEventListener('change', updateUIState);
         addBtn.addEventListener('click', () => addVariationRow());
