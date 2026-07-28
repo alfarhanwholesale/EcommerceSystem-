@@ -256,7 +256,7 @@
                     </div>
 
                     <!-- ToyyibPay Processing Fee (RM1) -->
-                    <div id="toyyibpay-fee-row" class="hidden flex justify-between text-blue-700 bg-blue-50 px-2.5 py-1.5 rounded-lg text-xs">
+                    <div id="toyyibpay-fee-row" style="display:none" class="justify-between text-blue-700 bg-blue-50 px-2.5 py-1.5 rounded-lg text-xs">
                         <span class="font-semibold">Caj Pemprosesan ToyyibPay</span>
                         <span class="font-bold">+ RM1.00</span>
                     </div>
@@ -334,11 +334,7 @@
             radio.addEventListener('change', function() {
                 const isOnline = this.value === 'online';
                 if (toyyibpayFeeRow) {
-                    if (isOnline) {
-                        toyyibpayFeeRow.classList.remove('hidden');
-                    } else {
-                        toyyibpayFeeRow.classList.add('hidden');
-                    }
+                    toyyibpayFeeRow.style.display = isOnline ? 'flex' : 'none';
                 }
                 if (toyyibpayFeeInput) toyyibpayFeeInput.value = isOnline ? '1' : '0';
                 updateTotals(currentShippingFee);
