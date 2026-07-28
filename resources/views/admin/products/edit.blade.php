@@ -61,10 +61,13 @@
                 <!-- Stock -->
                 <div>
                     <label for="stock" class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">Base Stock (Units)</label>
-                    <input type="number" name="stock" id="stock" value="{{ old('stock', $product->stock) }}" min="0" required
-                           class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
+                    <input type="number" name="stock" id="stock" value="{{ old('stock', $product->variations->isNotEmpty() ? 0 : $product->stock) }}" min="0" required
+                           {{ $product->variations->isNotEmpty() ? 'readonly' : '' }}
+                           class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all {{ $product->variations->isNotEmpty() ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : '' }}">
                     @if($product->variations->isNotEmpty())
-                        <span class="text-[10px] text-amber-700 font-bold mt-1 block">⚠️ Stock is currently managed via variations (total: {{ $product->variations->sum('stock') }} units). Base stock akan diabaikan.</span>
+                        <span class="text-[10px] text-amber-700 font-bold mt-1 block">🔒 Stok asas dikunci (0). Stok diuruskan mengikut variasi di bawah (Jumlah: {{ $product->variations->sum('stock') }} unit).</span>
+                    @else
+                        <span class="text-[10px] text-slate-400 font-semibold mt-1 block">Tukar kepada 0 jika ingin menambah variasi.</span>
                     @endif
                 </div>
             </div>

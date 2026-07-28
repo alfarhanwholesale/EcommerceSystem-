@@ -13,24 +13,26 @@
         </div>
         <div class="flex items-center gap-3 w-full sm:w-auto">
             <!-- Search Form -->
-            <form action="{{ route('admin.products') }}" method="GET" class="flex items-center gap-2 flex-1 sm:w-64">
+            <form action="{{ route('admin.products') }}" method="GET" class="flex items-center gap-2 flex-1 sm:w-72">
                 <div class="relative w-full">
                     <input type="text" name="search" value="{{ request('search') }}" 
                            placeholder="Cari produk / variasi..." 
-                           class="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
-                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
+                           class="w-full pl-10 pr-8 py-2.5 border border-slate-300 rounded-full text-xs bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all shadow-xs">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
                     @if(request('search'))
-                        <a href="{{ route('admin.products') }}" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 font-bold text-xs">✕</a>
+                        <a href="{{ route('admin.products') }}" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 font-bold text-xs">✕</a>
                     @endif
                 </div>
-                <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-3 rounded-xl text-xs transition-colors">
+                <button type="submit" class="bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2.5 px-4 rounded-full text-xs transition-colors shrink-0 shadow-xs">
                     Cari
                 </button>
             </form>
             <a href="{{ route('admin.products.create') }}" 
-               class="bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wide transition-all shadow-xs flex items-center gap-1.5 shrink-0">
+               class="bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2.5 px-4 rounded-full text-xs uppercase tracking-wide transition-all shadow-xs flex items-center gap-1.5 shrink-0">
                 <span>+</span> Product
             </a>
         </div>

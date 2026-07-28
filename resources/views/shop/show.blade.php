@@ -150,7 +150,7 @@
         const stock = parseInt(selectedOption.getAttribute('data-stock'));
 
         // Update price display
-        document.getElementById('display-price').innerText = '$' + price.toFixed(2);
+        document.getElementById('display-price').innerText = 'RM' + price.toFixed(2);
 
         // Update stock display & button state
         const stockDisplay = document.getElementById('display-stock');

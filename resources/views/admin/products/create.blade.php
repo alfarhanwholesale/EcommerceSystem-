@@ -58,7 +58,7 @@
                     <label for="stock" class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">Stok Asas (Unit)</label>
                     <input type="number" name="stock" id="stock" value="{{ old('stock', 0) }}" min="0" required
                            class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
-                    <span class="text-[10px] text-slate-400 font-semibold mt-1 block">Letak 0 jika stok diurus melalui variation sahaja.</span>
+                    <span id="base-stock-notice" class="text-[10px] text-slate-400 font-semibold mt-1 block">Letak 0 jika stok diurus melalui variation sahaja.</span>
                 </div>
             </div>
 
@@ -140,10 +140,30 @@
     const addBtn = document.getElementById('add-variation-btn');
 
     function updateNoticeVisibility() {
+        const stockInput = document.getElementById('stock');
+        const stockNotice = document.getElementById('base-stock-notice');
+
         if (container.children.length === 0) {
             noVariationNotice.classList.remove('hidden');
+            if (stockInput) {
+                stockInput.readOnly = false;
+                stockInput.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+            }
+            if (stockNotice) {
+                stockNotice.textContent = 'Letak 0 jika stok diurus melalui variation sahaja.';
+                stockNotice.className = 'text-[10px] text-slate-400 font-semibold mt-1 block';
+            }
         } else {
             noVariationNotice.classList.add('hidden');
+            if (stockInput) {
+                stockInput.value = 0;
+                stockInput.readOnly = true;
+                stockInput.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+            }
+            if (stockNotice) {
+                stockNotice.textContent = '🔒 Stok asas dikunci (0) kerana variasi digunakan. Stok diurus pada variasi di bawah.';
+                stockNotice.className = 'text-[10px] text-amber-600 font-bold mt-1 block';
+            }
         }
     }
 
