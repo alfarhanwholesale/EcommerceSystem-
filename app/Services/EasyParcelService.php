@@ -62,12 +62,11 @@ class EasyParcelService
 
     public function __construct()
     {
-        // Individual API Key — ONLY EASYPARCEL_API_KEY is used for EPRateCheckingBulk.
-        // CLIENT_ID / CLIENT_SECRET are OAuth credentials (different auth flow — not for rate checking).
+        // Individual API Key — fall back to CLIENT_ID if API_KEY is empty
         $this->apiKey = config('services.easyparcel.api_key')
-            ?: env('EASYPARCEL_API_KEY');
+            ?: (env('EASYPARCEL_API_KEY') ?: env('EASYPARCEL_CLIENT_ID'));
 
-        // Store OAuth credentials separately (reserved for future Connect API use)
+        // Store OAuth credentials separately
         $this->clientId     = config('services.easyparcel.client_id')     ?: env('EASYPARCEL_CLIENT_ID');
         $this->clientSecret = config('services.easyparcel.client_secret') ?: env('EASYPARCEL_CLIENT_SECRET');
 

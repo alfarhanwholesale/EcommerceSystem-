@@ -134,7 +134,7 @@ class CheckoutController extends Controller
         }
 
         $easyParcel  = new \App\Services\EasyParcelService();
-        $apiKey      = config('services.easyparcel.api_key') ?: env('EASYPARCEL_API_KEY');
+        $apiKey      = config('services.easyparcel.api_key') ?: (env('EASYPARCEL_API_KEY') ?: env('EASYPARCEL_CLIENT_ID'));
         $hasValidKey = ! empty($apiKey) && $apiKey !== 'your-easyparcel-api-key-here';
         $rates       = $easyParcel->getRates($postcode, $weight, $state);
 
