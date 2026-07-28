@@ -133,13 +133,22 @@ class CheckoutController extends Controller
             return response()->json(['success' => false, 'message' => 'Poskod tidak sah (mesti 5 digit).']);
         }
 
-        $easyParcel  = new \App\Services\EasyParcelService();
-        $hasKey      = ! empty(env('EASYPARCEL_CLIENT_ID')) || ! empty(env('EASYPARCEL_API_KEY'));
-        $rates       = $easyParcel->getRates($postcode, $weight, $state);
+        $easyParcel = new \App\Services\EasyParcelService();
+        $rates      = $easyParcel->getRates($postcode, max(0.10, $weight), $state);
 
-        $isLive = $hasKey && count($rates) > 0;
+        if (empty($rates)) {
+            return response()->json(['success' => false, 'message' => 'Tiada kadar penghantaran tersedia.']);
+        }
 
-        return response()->json(['success' => true, 'rates' => $rates, 'is_live' => $isLive]);
+        // is_live = true jika API Key live digunakan (flag dalam setiap rate)
+        $isLive = !empty($rates) && ($rates[0]['is_live'] ?? false);
+
+        return response()->json([
+            'success' => true,
+            'rates'   => $rates,
+            'is_live' => $isLive,
+            'zone'    => $easyParcel->resolveZone($postcode, $state),
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────────
