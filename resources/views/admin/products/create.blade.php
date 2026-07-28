@@ -139,15 +139,15 @@
                     </button>
                 </div>
 
-                <!-- 🚀 BULK EDIT TOOLBAR (Ala Shopee) -->
+                <!-- BULK EDIT TOOLBAR -->
                 <div id="bulk-edit-bar" class="hidden bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                            ⚡ Sunting Pukal (Bulk Edit Ala Shopee)
+                            ⚡ Sunting Pukal (Bulk Edit)
                         </span>
                         <span class="text-[10px] text-slate-400">Isi di bawah dan klik "Apply to All" untuk kemas kini semua baris sekaligus.</span>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Pukal (RM)</label>
                             <input type="number" id="bulk-price" step="0.01" min="0" placeholder="cth: 25.00"
@@ -156,11 +156,6 @@
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Stok Pukal (Unit)</label>
                             <input type="number" id="bulk-stock" min="0" placeholder="cth: 50"
-                                   class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-600">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Berat Pukal (kg)</label>
-                            <input type="number" id="bulk-weight" step="0.01" min="0" placeholder="cth: 0.50"
                                    class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-600">
                         </div>
                         <div>
@@ -184,37 +179,7 @@
         </div>
 
         <!-- ───────────────────────────────────────────────────────────────────────────── -->
-        <!-- STEP 4: PENGHANTARAN & BERAT (SHIPPING)                                      -->
-        <!-- ───────────────────────────────────────────────────────────────────────────── -->
-        <div class="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
-            <div class="border-b border-slate-100 pb-3 flex items-center gap-2">
-                <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">3</span>
-                <h3 class="text-base font-bold text-slate-800">Penghantaran (Shipping)</h3>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="weight" class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">
-                        Berat Produk Siap Bungkus (kg) <span class="text-red-500">*</span>
-                    </label>
-                    <input type="number" name="weight" id="weight" step="0.01" value="{{ old('weight', '0.50') }}" min="0.01" required
-                           class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
-                           placeholder="0.50">
-                    <span class="text-[11px] text-slate-400 mt-1 block">Digunakan untuk pengiraan kos kurier secara automatik.</span>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Dimensi Parcel (P x L x T cm)</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <input type="number" placeholder="Panjang" class="px-3 py-2.5 border border-slate-200 rounded-xl text-xs">
-                        <input type="number" placeholder="Lebar" class="px-3 py-2.5 border border-slate-200 rounded-xl text-xs">
-                        <input type="number" placeholder="Tinggi" class="px-3 py-2.5 border border-slate-200 rounded-xl text-xs">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ───────────────────────────────────────────────────────────────────────────── -->
-        <!-- STEP 5: STICKY ACTION FOOTER (FLOATING BAR ALA SHOPEE)                       -->
+        <!-- STEP 3: STICKY ACTION FOOTER                                                  -->
         <!-- ───────────────────────────────────────────────────────────────────────────── -->
         <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-4 z-40 shadow-lg">
             <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
@@ -304,36 +269,28 @@
             row.className = 'grid grid-cols-12 gap-2 items-end p-3 bg-slate-50 border border-slate-200 rounded-2xl variation-row transition-all';
             row.dataset.idx = idx;
 
-            const basePriceVal = document.getElementById('base_price')?.value || '';
-            const baseWeightVal = document.getElementById('weight')?.value || '0.50';
-
             row.innerHTML = `
-                <div class="col-span-3">
+                <div class="col-span-4">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nama Variasi <span class="text-red-500">*</span></label>
                     <input type="text" name="variations[${idx}][name]" required value="${defaultName}" placeholder="cth: Saiz, Warna"
                            class="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white focus:ring-1 focus:ring-emerald-600">
                 </div>
-                <div class="col-span-3">
+                <div class="col-span-4">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nilai Pilihan <span class="text-red-500">*</span></label>
                     <input type="text" name="variations[${idx}][value]" required value="${defaultValue}" placeholder="cth: Merah, 500g, XL"
                            class="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white focus:ring-1 focus:ring-emerald-600">
                 </div>
                 <div class="col-span-2">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga (RM)</label>
-                    <input type="number" name="variations[${idx}][price]" step="0.01" min="0" value="${basePriceVal}" placeholder="RM 0.00"
+                    <input type="number" name="variations[${idx}][price]" step="0.01" min="0" placeholder="RM 0.00"
                            class="var-price-input w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white focus:ring-1 focus:ring-emerald-600">
                 </div>
-                <div class="col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Stok (Unit) <span class="text-red-500">*</span></label>
+                <div class="col-span-1">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Stok <span class="text-red-500">*</span></label>
                     <input type="number" name="variations[${idx}][stock]" required min="0" value="10"
                            class="var-stock-input w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white focus:ring-1 focus:ring-emerald-600">
                 </div>
-                <div class="col-span-1">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Berat (kg)</label>
-                    <input type="number" name="variations[${idx}][weight]" step="0.01" min="0" value="${baseWeightVal}" placeholder="kg"
-                           class="var-weight-input w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white focus:ring-1 focus:ring-emerald-600">
-                </div>
-                <div class="col-span-1 flex justify-end">
+                <div class="col-span-1 flex justify-end items-end">
                     <button type="button" class="remove-var-btn p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all" title="Padam variasi ini">
                         ✕
                     </button>
@@ -358,16 +315,12 @@
         applyBulkBtn.addEventListener('click', function () {
             const bulkPrice = document.getElementById('bulk-price').value;
             const bulkStock = document.getElementById('bulk-stock').value;
-            const bulkWeight = document.getElementById('bulk-weight').value;
 
             document.querySelectorAll('.var-price-input').forEach(input => {
                 if (bulkPrice !== '') input.value = bulkPrice;
             });
             document.querySelectorAll('.var-stock-input').forEach(input => {
                 if (bulkStock !== '') input.value = bulkStock;
-            });
-            document.querySelectorAll('.var-weight-input').forEach(input => {
-                if (bulkWeight !== '') input.value = bulkWeight;
             });
         });
 

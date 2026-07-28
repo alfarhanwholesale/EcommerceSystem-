@@ -141,7 +141,6 @@
                         <tr class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                             <th class="p-4 pl-6">Nama Variasi</th>
                             <th class="p-4">Nilai Pilihan</th>
-                            <th class="p-4 text-center">Berat (kg)</th>
                             <th class="p-4 text-right">Harga (RM)</th>
                             <th class="p-4 text-center">Stok (Unit)</th>
                             <th class="p-4 text-right pr-6">Tindakan</th>
@@ -152,14 +151,11 @@
                             <tr class="hover:bg-slate-50/40 transition-colors">
                                 <td class="p-4 pl-6 font-bold text-slate-900">{{ $var->name }}</td>
                                 <td class="p-4"><span class="bg-slate-100 text-slate-800 px-2 py-0.5 rounded-lg border font-bold">{{ $var->value }}</span></td>
-                                <td class="p-4 text-center font-semibold text-slate-700">
-                                    {{ number_format($var->active_weight, 2) }} kg
-                                </td>
                                 <td class="p-4 text-right font-bold text-emerald-800">
                                     @if($var->price !== null)
                                         RM{{ number_format($var->price, 2) }}
                                     @else
-                                        <span class="text-slate-400 italic">Warisi (RM{{ number_format($product->active_price, 2) }})</span>
+                                        <span class="text-slate-400 italic">RM{{ number_format($product->active_price, 2) }}</span>
                                     @endif
                                 </td>
                                 <td class="p-4 text-center">
@@ -178,7 +174,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="p-8 text-center text-slate-400 italic">Belum ada variasi ditambah untuk produk ini. Gunakan borang di bawah untuk menambah variasi baharu.</td>
+                                <td colspan="5" class="p-8 text-center text-slate-400 italic">Belum ada variasi ditambah untuk produk ini. Gunakan borang di bawah untuk menambah variasi baharu.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -191,25 +187,19 @@
 
                 <form action="{{ route('admin.variations.store', $product->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                     @csrf
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-3">
                         <label for="variation_name" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nama Variasi</label>
                         <input type="text" name="variation_name" id="variation_name" required placeholder="cth: Saiz, Berat"
                                class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white focus:ring-1 focus:ring-emerald-600">
                     </div>
 
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-3">
                         <label for="variation_value" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nilai Pilihan</label>
                         <input type="text" name="variation_value" id="variation_value" required placeholder="cth: 500g, 1kg"
                                class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white focus:ring-1 focus:ring-emerald-600">
                     </div>
 
-                    <div class="md:col-span-2">
-                        <label for="variation_weight" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Berat kg (Pilihan)</label>
-                        <input type="number" name="variation_weight" id="variation_weight" step="0.01" min="0" placeholder="Auto"
-                               class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white focus:ring-1 focus:ring-emerald-600">
-                    </div>
-
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-3">
                         <label for="variation_price" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga (RM)</label>
                         <input type="number" name="variation_price" id="variation_price" step="0.01" min="0" placeholder="Warisi"
                                class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white focus:ring-1 focus:ring-emerald-600">
@@ -221,10 +211,10 @@
                                class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 bg-white focus:ring-1 focus:ring-emerald-600">
                     </div>
 
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-1">
                         <button type="submit" 
                                 class="w-full bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2 px-3 rounded-xl text-xs uppercase tracking-wider transition-colors shrink-0 h-[38px] flex items-center justify-center shadow-xs">
-                            Tambah Variasi
+                            +
                         </button>
                     </div>
                 </form>
@@ -232,35 +222,7 @@
         </div>
 
         <!-- ───────────────────────────────────────────────────────────────────────────── -->
-        <!-- STEP 4: PENGHANTARAN (SHIPPING)                                             -->
-        <!-- ───────────────────────────────────────────────────────────────────────────── -->
-        <div class="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
-            <div class="border-b border-slate-100 pb-3 flex items-center gap-2">
-                <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">4</span>
-                <h3 class="text-base font-bold text-slate-800">Penghantaran (Shipping)</h3>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="weight" class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">
-                        Berat Produk Siap Bungkus (kg) <span class="text-red-500">*</span>
-                    </label>
-                    <input type="number" name="weight" id="weight" step="0.01" value="{{ old('weight', $product->weight ?? '0.50') }}" min="0.01" required
-                           class="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Dimensi Parcel (P x L x T cm)</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <input type="number" placeholder="Panjang" class="px-3 py-2.5 border border-slate-200 rounded-xl text-xs">
-                        <input type="number" placeholder="Lebar" class="px-3 py-2.5 border border-slate-200 rounded-xl text-xs">
-                        <input type="number" placeholder="Tinggi" class="px-3 py-2.5 border border-slate-200 rounded-xl text-xs">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ───────────────────────────────────────────────────────────────────────────── -->
-        <!-- STEP 5: STICKY ACTION FOOTER (FLOATING BAR ALA SHOPEE)                       -->
+        <!-- STEP 4: STICKY ACTION FOOTER                                                  -->
         <!-- ───────────────────────────────────────────────────────────────────────────── -->
         <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-4 z-40 shadow-lg">
             <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">

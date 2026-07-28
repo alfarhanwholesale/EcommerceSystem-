@@ -43,8 +43,7 @@
                 <tr class="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     <th class="p-4 pl-6">Product details</th>
                     <th class="p-4">Category</th>
-                    <th class="p-4 text-right">Base Price</th>
-                    <th class="p-4 text-right">Discount Price</th>
+                    <th class="p-4 text-right" colspan="2">Harga</th>
                     <th class="p-4 text-center">Stock</th>
                     <th class="p-4">Variations</th>
                     <th class="p-4 text-right pr-6">Actions</th>
@@ -73,17 +72,24 @@
                             </span>
                         </td>
 
-                        <!-- Base Price -->
-                        <td class="p-4 text-right font-semibold text-slate-800">
-                            RM{{ number_format($product->base_price, 2) }}
-                        </td>
-
-                        <!-- Discount Price -->
-                        <td class="p-4 text-right">
-                            @if($product->discount_price)
-                                <span class="text-rose-600 font-bold">RM{{ number_format($product->discount_price, 2) }}</span>
+                        <!-- Price -->
+                        <td class="p-4 text-right font-semibold text-slate-800" colspan="2">
+                            @if($product->variations->isNotEmpty())
+                                @php
+                                    $prices = $product->variations->pluck('price')->filter()->sort()->values();
+                                    $minP = $prices->first() ?? $product->base_price;
+                                    $maxP = $prices->last() ?? $product->base_price;
+                                @endphp
+                                @if($minP == $maxP)
+                                    <span class="text-emerald-800 font-bold">RM{{ number_format($minP, 2) }}</span>
+                                @else
+                                    <span class="text-emerald-800 font-bold">RM{{ number_format($minP, 2) }} – RM{{ number_format($maxP, 2) }}</span>
+                                @endif
                             @else
-                                <span class="text-slate-400 text-xs italic">No discount</span>
+                                <span class="text-slate-800">RM{{ number_format($product->base_price, 2) }}</span>
+                                @if($product->discount_price)
+                                    <span class="block text-rose-600 text-xs font-bold">RM{{ number_format($product->discount_price, 2) }}</span>
+                                @endif
                             @endif
                         </td>
 
