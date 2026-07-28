@@ -32,6 +32,7 @@ class Order extends Model
         'shipping_state',
         'tracking_code',
         'easyparcel_order_id',
+        'guest_token',
     ];
 
     protected $casts = [

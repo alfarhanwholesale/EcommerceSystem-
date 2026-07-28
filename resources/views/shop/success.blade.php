@@ -123,10 +123,18 @@
            class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-8 py-3 rounded-full shadow-md text-sm text-center transition-all">
             Continue Shopping
         </a>
+        @auth
         <a href="{{ route('customer.orders') }}" 
            class="w-full sm:w-auto border border-emerald-200 text-emerald-800 hover:bg-emerald-50 font-bold px-8 py-3 rounded-full text-sm text-center transition-all">
             View Order History
         </a>
+        @endauth
+        @guest
+        <a href="{{ route('register') }}"
+           class="w-full sm:w-auto border border-emerald-200 text-emerald-800 hover:bg-emerald-50 font-bold px-8 py-3 rounded-full text-sm text-center transition-all">
+            Daftar Akaun untuk Jejak Pesanan
+        </a>
+        @endguest
     </div>
 </div>
 @endsection

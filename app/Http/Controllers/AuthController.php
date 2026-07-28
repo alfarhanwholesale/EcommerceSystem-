@@ -68,8 +68,11 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             $user = Auth::user();
+
+            // Merge guest cart into user's DB cart on login
             if ($user->role === 'customer') {
-                return redirect()->intended(route('shop.home'))->with('success', 'Logged in successfully.');
+                CartController::mergeGuestCart($user->id);
+                return redirect()->intended(route('shop.home'))->with('success', 'Log masuk berjaya!');
             } else {
                 // If staff attempts customer login, redirect to admin dashboard anyway
                 return redirect()->route('admin.dashboard')->with('success', 'Staff logged in successfully.');
@@ -178,7 +181,8 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         if ($user->role === 'customer') {
-            return redirect()->intended(route('shop.home'))->with('success', 'Logged in successfully via Google.');
+            CartController::mergeGuestCart($user->id);
+            return redirect()->intended(route('shop.home'))->with('success', 'Log masuk berjaya melalui Google!');
         } else {
             return redirect()->route('admin.dashboard')->with('success', 'Staff logged in successfully via Google.');
         }

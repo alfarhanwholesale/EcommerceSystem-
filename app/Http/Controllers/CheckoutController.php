@@ -12,118 +12,149 @@ use App\Models\ProductVariation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class CheckoutController extends Controller
 {
-    // Checkout Page
-    public function index(Request $request)
+    // ─────────────────────────────────────────────────────────────────
+    //  HELPERS
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Resolve cart items from DB (auth) or session (guest) */
+    private function resolveCartItems(?object $user, array $selectedIds = []): \Illuminate\Support\Collection
     {
-        $user = Auth::user();
-        if (!$user) {
-            return redirect()->route('login')->with('error', 'Please login to checkout.');
-        }
-
-        $selectedItems = $request->input('selected_items', []);
-        
-        $query = CartItem::with(['product', 'variation'])
-            ->where('user_id', $user->id);
-
-        if (!empty($selectedItems)) {
-            $query->whereIn('id', $selectedItems);
-            session(['checkout_items' => $selectedItems]);
-        } else {
-            $selectedItems = session('checkout_items', []);
-            if (!empty($selectedItems)) {
-                $query->whereIn('id', $selectedItems);
+        if ($user) {
+            $query = CartItem::with(['product', 'variation'])->where('user_id', $user->id);
+            if (! empty($selectedIds)) {
+                $query->whereIn('id', $selectedIds);
             } else {
                 $query->where('is_selected', true);
             }
+            return $query->get();
         }
 
-        $cartItems = $query->get();
+        // Guest
+        $guestCart = session('guest_cart', []);
+        $cartCtrl  = new CartController();
+        $ref       = new \ReflectionMethod(CartController::class, 'buildGuestCartObjects');
+        $ref->setAccessible(true);
+        $objects   = $ref->invoke($cartCtrl, $guestCart);
 
-        if ($cartItems->isEmpty()) {
-            return redirect()->route('shop.cart')->with('error', 'Your cart is empty.');
+        // Filter by selected IDs if provided
+        if (! empty($selectedIds)) {
+            $objects = array_filter($objects, fn($o) => in_array($o->id, $selectedIds));
+        } else {
+            $objects = array_filter($objects, fn($o) => $o->is_selected);
         }
 
-        $subtotal = 0;
-        $totalWeight = 0;
-        foreach ($cartItems as $item) {
-            $subtotal += $item->subtotal;
-            $totalWeight += $item->item_weight;
-        }
+        return collect(array_values($objects));
+    }
 
-        // Apply coupon if valid
-        $discount = 0.00;
-        $couponCode = session('applied_coupon_code');
-        $coupon = null;
+    // ─────────────────────────────────────────────────────────────────
+    //  CHECKOUT PAGE
+    // ─────────────────────────────────────────────────────────────────
 
-        if ($couponCode) {
-            $coupon = Coupon::where('code', $couponCode)->first();
-            if ($coupon && $coupon->isValidForUser($user, $subtotal)) {
-                $discount = $coupon->calculateDiscount($subtotal);
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+
+        $selectedItems = $request->input('selected_items', []);
+
+        // For logged-in users, handle session-based item selection
+        if ($user) {
+            if (! empty($selectedItems)) {
+                session(['checkout_items' => $selectedItems]);
             } else {
-                session()->forget('applied_coupon_code');
+                $selectedItems = session('checkout_items', []);
             }
         }
 
-        $total = max(0.00, $subtotal - $discount);
+        $cartItems = $this->resolveCartItems($user, $selectedItems);
 
+        if ($cartItems->isEmpty()) {
+            return redirect()->route('shop.cart')->with('error', 'Troli anda kosong.');
+        }
+
+        $subtotal    = 0;
+        $totalWeight = 0;
+        foreach ($cartItems as $item) {
+            $subtotal    += $item->subtotal;
+            $totalWeight += $item->item_weight;
+        }
+
+        // Apply coupon if valid (logged-in only)
+        $discount   = 0.00;
+        $couponCode = null;
+        $coupon     = null;
+
+        if ($user) {
+            $couponCode = session('applied_coupon_code');
+            if ($couponCode) {
+                $coupon = Coupon::where('code', $couponCode)->first();
+                if ($coupon && $coupon->isValidForUser($user, $subtotal)) {
+                    $discount = $coupon->calculateDiscount($subtotal);
+                } else {
+                    session()->forget('applied_coupon_code');
+                    $couponCode = null;
+                }
+            }
+        }
+
+        $total       = max(0.00, $subtotal - $discount);
         $sandboxMode = config('payment.toyyibpay.sandbox', false);
 
-        // Pickup address for self-collection option
         $pickupAddress = [
-            'name'    => env('EASYPARCEL_ORIGIN_NAME', 'Alfarhan Trading'),
-            'address' => env('EASYPARCEL_ORIGIN_ADDRESS', '-'),
-            'city'    => env('EASYPARCEL_ORIGIN_CITY', 'Puchong'),
-            'state'   => env('EASYPARCEL_ORIGIN_STATE', 'Selangor'),
-            'postcode'=> env('EASYPARCEL_ORIGIN_POSTCODE', '47100'),
-            'phone'   => env('EASYPARCEL_ORIGIN_PHONE', '-'),
+            'name'     => env('EASYPARCEL_ORIGIN_NAME', 'Alfarhan Trading'),
+            'address'  => env('EASYPARCEL_ORIGIN_ADDRESS', '-'),
+            'city'     => env('EASYPARCEL_ORIGIN_CITY', 'Puchong'),
+            'state'    => env('EASYPARCEL_ORIGIN_STATE', 'Selangor'),
+            'postcode' => env('EASYPARCEL_ORIGIN_POSTCODE', '47100'),
+            'phone'    => env('EASYPARCEL_ORIGIN_PHONE', '-'),
         ];
 
-        return view('shop.checkout', compact('cartItems', 'subtotal', 'discount', 'total', 'couponCode', 'totalWeight', 'sandboxMode', 'pickupAddress'));
+        return view('shop.checkout', compact(
+            'cartItems', 'subtotal', 'discount', 'total', 'couponCode',
+            'totalWeight', 'sandboxMode', 'pickupAddress'
+        ));
     }
 
-    // AJAX Endpoint to get shipping rates
+    // ─────────────────────────────────────────────────────────────────
+    //  SHIPPING RATES (AJAX)
+    // ─────────────────────────────────────────────────────────────────
+
     public function getShippingRates(Request $request)
     {
         $postcode = trim($request->get('postcode', ''));
         $state    = trim($request->get('state', ''));
         $weight   = (float) $request->get('weight', 0.50);
 
-        if (!$postcode || strlen($postcode) < 5) {
+        if (! $postcode || strlen($postcode) < 5) {
             return response()->json(['success' => false, 'message' => 'Poskod tidak sah (mesti 5 digit).']);
         }
 
-        $easyParcel = new \App\Services\EasyParcelService();
-        $apiKey     = config('services.easyparcel.api_key') ?: env('EASYPARCEL_API_KEY');
-        $hasValidKey = !empty($apiKey) && $apiKey !== 'your-easyparcel-api-key-here';
+        $easyParcel  = new \App\Services\EasyParcelService();
+        $apiKey      = config('services.easyparcel.api_key') ?: env('EASYPARCEL_API_KEY');
+        $hasValidKey = ! empty($apiKey) && $apiKey !== 'your-easyparcel-api-key-here';
+        $rates       = $easyParcel->getRates($postcode, $weight, $state);
 
-        $rates  = $easyParcel->getRates($postcode, $weight, $state);
-
-        // Detect if rates came from live API or local fallback
-        // Fallback rates always have service_id starting with 'FALLBACK-'
         $isLive = $hasValidKey && count($rates) > 0
-                  && !str_starts_with($rates[0]['service_id'] ?? '', 'FALLBACK-');
+                  && ! str_starts_with($rates[0]['service_id'] ?? '', 'FALLBACK-');
 
-        return response()->json([
-            'success' => true,
-            'rates'   => $rates,
-            'is_live' => $isLive,
-        ]);
+        return response()->json(['success' => true, 'rates' => $rates, 'is_live' => $isLive]);
     }
 
-    // Place Order
+    // ─────────────────────────────────────────────────────────────────
+    //  PLACE ORDER
+    // ─────────────────────────────────────────────────────────────────
+
     public function store(Request $request)
     {
-        $user = Auth::user();
-        if (!$user) {
-            return redirect()->route('login')->with('error', 'Please login to place an order.');
-        }
-
+        $user         = Auth::user();
         $isSelfPickup = $request->input('shipping_method') === 'self_pickup';
+        $isGuest      = ! $user;
 
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+        $rules = [
             'customer_name'    => 'required|string|max:255',
             'customer_phone'   => 'required|string|max:20',
             'street_address'   => $isSelfPickup ? 'nullable|string' : 'required|string',
@@ -135,36 +166,41 @@ class CheckoutController extends Controller
             'shipping_courier' => 'nullable|string',
             'shipping_service' => 'nullable|string',
             'shipping_cost'    => 'nullable|numeric',
-        ]);
+        ];
 
+        // Guest must provide email
+        if ($isGuest) {
+            $rules['customer_email'] = 'required|email|max:255';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        $selectedItems = session('checkout_items', []);
-        
-        $query = CartItem::with(['product', 'variation'])
-            ->where('user_id', $user->id);
-            
-        if (!empty($selectedItems)) {
-            $query->whereIn('id', $selectedItems);
-        }
-        
-        $cartItems = $query->get();
+        // Resolve cart items
+        $selectedItems = $user ? session('checkout_items', []) : [];
+        $cartItems     = $this->resolveCartItems($user, $selectedItems);
 
         if ($cartItems->isEmpty()) {
-            return redirect()->route('shop.cart')->with('error', 'Your cart is empty.');
+            return redirect()->route('shop.cart')->with('error', 'Troli anda kosong.');
         }
 
         // Re-verify stock before proceeding
         foreach ($cartItems as $item) {
-            if ($item->product_variation_id) {
-                if ($item->variation->stock < $item->quantity) {
-                    return redirect()->route('shop.cart')->with('error', 'Stock conflict! Only ' . $item->variation->stock . ' units of ' . $item->product->name . ' (' . $item->variation->value . ') are available.');
+            $variationId = $item->product_variation_id ?? null;
+            if ($variationId) {
+                $stock = $item->variation->stock ?? 0;
+                if ($stock < $item->quantity) {
+                    return redirect()->route('shop.cart')->with('error',
+                        'Stok tidak mencukupi! Hanya ' . $stock . ' unit ' . $item->product->name . ' (' . ($item->variation->value ?? '') . ') tersedia.'
+                    );
                 }
             } else {
                 if ($item->product->stock < $item->quantity) {
-                    return redirect()->route('shop.cart')->with('error', 'Stock conflict! Only ' . $item->product->stock . ' units of ' . $item->product->name . ' are available.');
+                    return redirect()->route('shop.cart')->with('error',
+                        'Stok tidak mencukupi! Hanya ' . $item->product->stock . ' unit ' . $item->product->name . ' tersedia.'
+                    );
                 }
             }
         }
@@ -174,19 +210,22 @@ class CheckoutController extends Controller
             $subtotal += $item->subtotal;
         }
 
-        // Coupon calculations
-        $discount = 0.00;
-        $couponCode = session('applied_coupon_code');
-        $coupon = null;
+        // Coupon (logged-in users only)
+        $discount   = 0.00;
+        $couponCode = null;
+        $coupon     = null;
 
-        if ($couponCode) {
-            $coupon = Coupon::where('code', $couponCode)->first();
-            if ($coupon && $coupon->isValidForUser($user, $subtotal)) {
-                $discount = $coupon->calculateDiscount($subtotal);
+        if ($user) {
+            $couponCode = session('applied_coupon_code');
+            if ($couponCode) {
+                $coupon = Coupon::where('code', $couponCode)->first();
+                if ($coupon && $coupon->isValidForUser($user, $subtotal)) {
+                    $discount = $coupon->calculateDiscount($subtotal);
+                }
             }
         }
 
-        // Self Pickup: override shipping cost and delivery address
+        // Shipping
         if ($isSelfPickup) {
             $shippingCost    = 0.00;
             $deliveryAddress = 'SELF PICKUP — ' .
@@ -204,42 +243,43 @@ class CheckoutController extends Controller
 
         $total = max(0.00, $subtotal - $discount + $shippingCost);
 
-        // Run DB Transaction to ensure atomicity
         DB::beginTransaction();
         try {
-            // 1. Create the order
+            $guestToken = $isGuest ? Str::random(48) : null;
+
             $order = Order::create([
-                'user_id' => $user->id,
-                'order_type' => 'online',
-                'customer_name' => $request->customer_name,
-                'customer_email' => $user->email,
-                'customer_phone' => $request->customer_phone,
+                'user_id'          => $user ? $user->id : null,
+                'order_type'       => 'online',
+                'customer_name'    => $request->customer_name,
+                'customer_email'   => $isGuest ? $request->customer_email : $user->email,
+                'customer_phone'   => $request->customer_phone,
                 'delivery_address' => $deliveryAddress,
-                'total_amount' => $subtotal,
-                'discount_amount' => $discount,
-                'shipping_cost' => $shippingCost,
-                'final_amount' => $total,
-                'coupon_code' => $couponCode,
-                'status' => 'pending',
+                'total_amount'     => $subtotal,
+                'discount_amount'  => $discount,
+                'shipping_cost'    => $shippingCost,
+                'final_amount'     => $total,
+                'coupon_code'      => $couponCode,
+                'status'           => 'pending',
                 'shipping_courier' => $isSelfPickup ? 'Self Pickup' : $request->input('shipping_courier'),
                 'shipping_service' => $isSelfPickup ? 'Self Collection' : $request->input('shipping_service'),
-                'shipping_postcode' => $isSelfPickup ? env('EASYPARCEL_ORIGIN_POSTCODE') : $request->input('postcode'),
-                'shipping_city'     => $isSelfPickup ? env('EASYPARCEL_ORIGIN_CITY') : $request->input('city'),
-                'shipping_state'    => $isSelfPickup ? env('EASYPARCEL_ORIGIN_STATE') : $request->input('state'),
+                'shipping_postcode'=> $isSelfPickup ? env('EASYPARCEL_ORIGIN_POSTCODE') : $request->input('postcode'),
+                'shipping_city'    => $isSelfPickup ? env('EASYPARCEL_ORIGIN_CITY') : $request->input('city'),
+                'shipping_state'   => $isSelfPickup ? env('EASYPARCEL_ORIGIN_STATE') : $request->input('state'),
+                'guest_token'      => $guestToken,
             ]);
 
-            // 2. Create order items and decrement stock
+            // Create order items and decrement stock
             foreach ($cartItems as $item) {
                 OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'product_variation_id' => $item->product_variation_id,
-                    'price' => $item->unit_price,
-                    'quantity' => $item->quantity,
+                    'order_id'             => $order->id,
+                    'product_id'           => $item->product_id,
+                    'product_variation_id' => $item->product_variation_id ?? null,
+                    'price'                => $item->unit_price,
+                    'quantity'             => $item->quantity,
                 ]);
 
                 // Decrement stock
-                if ($item->product_variation_id) {
+                if (! empty($item->product_variation_id)) {
                     $variation = ProductVariation::lockForUpdate()->find($item->product_variation_id);
                     $variation->stock -= $item->quantity;
                     $variation->save();
@@ -250,60 +290,92 @@ class CheckoutController extends Controller
                 }
             }
 
-            // 3. Mark coupon as used
-            if ($coupon) {
-                $userCoupon = UserCoupon::where('user_id', $user->id)
-                    ->where('coupon_id', $coupon->id)
-                    ->first();
+            // Mark coupon as used (logged-in only)
+            if ($coupon && $user) {
+                $userCoupon = UserCoupon::where('user_id', $user->id)->where('coupon_id', $coupon->id)->first();
                 if ($userCoupon) {
                     $userCoupon->used_at = now();
                     $userCoupon->save();
                 }
             }
 
-            // 4. Clear Cart
-            if (!empty($selectedItems)) {
-                CartItem::where('user_id', $user->id)->whereIn('id', $selectedItems)->delete();
+            // Clear cart
+            if ($user) {
+                if (! empty($selectedItems)) {
+                    CartItem::where('user_id', $user->id)->whereIn('id', $selectedItems)->delete();
+                } else {
+                    CartItem::where('user_id', $user->id)->delete();
+                }
+                session()->forget('applied_coupon_code');
+                session()->forget('checkout_items');
             } else {
-                CartItem::where('user_id', $user->id)->delete();
+                session()->forget('guest_cart');
             }
-            session()->forget('applied_coupon_code');
-            session()->forget('checkout_items');
 
             DB::commit();
 
-            // ─── Routing berdasarkan kaedah bayaran ─────────────────────────
             if ($request->payment_method === 'online') {
-                // Redirect ke ToyyibPay sandbox payment page
+                if ($isGuest) {
+                    // Online payment for guest — redirect to payment with token
+                    return redirect()
+                        ->route('checkout.payment', ['order_id' => $order->id, 'token' => $guestToken])
+                        ->with('info', 'Sila lengkapkan pembayaran anda.');
+                }
                 return redirect()
                     ->route('checkout.payment', ['order_id' => $order->id])
                     ->with('info', 'Sila lengkapkan pembayaran anda.');
             }
 
-            // COD — terus ke halaman success
+            // COD — redirect to success
+            if ($isGuest) {
+                return redirect()
+                    ->route('checkout.success', ['id' => $order->id, 'token' => $guestToken])
+                    ->with('success', 'Terima kasih! Pesanan anda telah diterima.');
+            }
+
             return redirect()
                 ->route('checkout.success', $order->id)
                 ->with('success', 'Terima kasih! Pesanan anda telah diterima.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Something went wrong: ' . $e->getMessage());
+            return back()->with('error', 'Ralat berlaku: ' . $e->getMessage());
         }
     }
 
-    // Success confirmation
-    public function success($id)
+    // ─────────────────────────────────────────────────────────────────
+    //  SUCCESS PAGE
+    // ─────────────────────────────────────────────────────────────────
+
+    public function success(Request $request, $id)
     {
-        $user = Auth::user();
-        $order = Order::with('items.product')->where('user_id', $user->id)->findOrFail($id);
+        $user  = Auth::user();
+        $token = $request->query('token');
+
+        if ($user) {
+            $order = Order::with('items.product', 'items.variation')
+                ->where('user_id', $user->id)
+                ->findOrFail($id);
+        } elseif ($token) {
+            $order = Order::with('items.product', 'items.variation')
+                ->where('id', $id)
+                ->where('guest_token', $token)
+                ->firstOrFail();
+        } else {
+            abort(403, 'Akses tidak dibenarkan.');
+        }
+
         return view('shop.success', compact('order'));
     }
 
-    // Customer order history
+    // ─────────────────────────────────────────────────────────────────
+    //  CUSTOMER ORDER HISTORY (logged-in only)
+    // ─────────────────────────────────────────────────────────────────
+
     public function orders()
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 

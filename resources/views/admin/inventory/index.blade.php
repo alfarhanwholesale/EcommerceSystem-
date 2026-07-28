@@ -6,12 +6,31 @@
 
 @section('content')
 <div class="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
-    <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 pb-4 gap-4">
         <div>
             <h3 class="text-lg font-bold text-slate-800 font-serif">Product & Variation Stock Status</h3>
             <p class="text-xs text-slate-500 mt-1">Review active quantities. Red and yellow flags indicate low stock. Use the quick-adder forms to replenish.</p>
         </div>
-        <span class="bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Purchaser Panel</span>
+        <div class="flex items-center gap-3 w-full md:w-auto">
+            <!-- Search Form -->
+            <form action="{{ route('admin.inventory') }}" method="GET" class="flex items-center gap-2 flex-1 md:w-72">
+                <div class="relative w-full">
+                    <input type="text" name="search" value="{{ request('search') }}" 
+                           placeholder="Cari stok produk / variasi..." 
+                           class="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    @if(request('search'))
+                        <a href="{{ route('admin.inventory') }}" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 font-bold text-xs">✕</a>
+                    @endif
+                </div>
+                <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-3.5 rounded-xl text-xs transition-colors shrink-0">
+                    Cari
+                </button>
+            </form>
+            <span class="bg-blue-50 border border-blue-200 text-blue-800 text-[10px] font-bold px-3 py-1 rounded-full uppercase shrink-0">Purchaser Panel</span>
+        </div>
     </div>
 
     <!-- Inventory list table -->

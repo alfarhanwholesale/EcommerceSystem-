@@ -71,10 +71,25 @@ class AdminController extends Controller
     // ADMIN ONLY: PRODUCT MANAGEMENT (CRUD)
     // ----------------------------------------------------
 
-    public function productList()
+    public function productList(Request $request)
     {
         $this->checkAccess('admin');
-        $products = Product::with('variations')->orderBy('created_at', 'desc')->paginate(10);
+        $query = Product::with('variations');
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('category', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('variations', function ($vq) use ($search) {
+                      $vq->where('name', 'like', "%{$search}%")
+                         ->orWhere('value', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $products = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
         return view('admin.products.index', compact('products'));
     }
 
@@ -317,10 +332,24 @@ class AdminController extends Controller
     // NOTE: Restock Product is the main inventory function
     // ----------------------------------------------------
 
-    public function inventoryList()
+    public function inventoryList(Request $request)
     {
         $this->checkAccess(['admin', 'purchaser', 'storekeeper']);
-        $products = Product::with('variations')->orderBy('name', 'asc')->paginate(15);
+        $query = Product::with('variations');
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('category', 'like', "%{$search}%")
+                  ->orWhereHas('variations', function ($vq) use ($search) {
+                      $vq->where('name', 'like', "%{$search}%")
+                         ->orWhere('value', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $products = $query->orderBy('name', 'asc')->paginate(15)->withQueryString();
         return view('admin.inventory.index', compact('products'));
     }
 

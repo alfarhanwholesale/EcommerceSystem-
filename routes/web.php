@@ -15,7 +15,7 @@ Route::get('/run-migrations', function () {
         Artisan::call('migrate', [
             '--force' => true
         ]);
-        
+
         // Also seed the default categories
         if (\App\Models\Category::count() == 0) {
             \App\Models\Category::insert([
@@ -26,14 +26,16 @@ Route::get('/run-migrations', function () {
                 ['name' => 'Others']
             ]);
         }
-        
+
         return 'Migrations ran successfully! Categories seeded. You can now go back to your website.';
     } catch (\Exception $e) {
         return 'Error running migrations: ' . $e->getMessage();
     }
 });
 
-// Customer Storefront Front-facing Catalog
+// ─────────────────────────────────────────────────────────────────────────────
+//  Customer Storefront Front-facing Catalog (PUBLIC)
+// ─────────────────────────────────────────────────────────────────────────────
 Route::get('/', [ProductController::class, 'home'])->name('shop.home');
 Route::get('/shop', [ProductController::class, 'index'])->name('shop.index');
 Route::get('/product/{id}', [ProductController::class, 'show'])->name('shop.show');
@@ -41,7 +43,23 @@ Route::get('/about', function () {
     return view('shop.about');
 })->name('shop.about');
 
-// Authentication Routes
+// ─────────────────────────────────────────────────────────────────────────────
+//  Shopping Cart & Checkout — open to GUESTS and logged-in users
+// ─────────────────────────────────────────────────────────────────────────────
+Route::get('/cart', [CartController::class, 'index'])->name('shop.cart');
+Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
+Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
+Route::post('/cart/update-selection', [CartController::class, 'updateSelection'])->name('cart.update-selection');
+
+Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+Route::get('/checkout/shipping-rates', [CheckoutController::class, 'getShippingRates'])->name('checkout.shipping_rates');
+Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+Route::get('/checkout/success/{id}', [CheckoutController::class, 'success'])->name('checkout.success');
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Authentication Routes
+// ─────────────────────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
     // Customer Auth
     Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
@@ -66,7 +84,9 @@ Route::any('/logout', [AuthController::class, 'logout'])->name('logout');
 // Payment gateway webhook (must be outside auth — called by ToyyibPay/Billplz servers)
 Route::post('/webhook/payment', [PaymentController::class, 'webhook'])->name('webhook.payment');
 
-// Logged-in Customer Features (Cart, Coupons, Checkout, History)
+// ─────────────────────────────────────────────────────────────────────────────
+//  Logged-in Customer Features (Coupons, Order History)
+// ─────────────────────────────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
     // Email Verification Notice & Verification Actions
     Route::get('/email/verify', [AuthController::class, 'showVerificationNotice'])->name('verification.notice');
@@ -75,29 +95,16 @@ Route::middleware('auth')->group(function () {
 
     // Verified Customer & Administrative Features
     Route::middleware('verified')->group(function () {
-        // Shopping Cart
-        Route::get('/cart', [CartController::class, 'index'])->name('shop.cart');
-        Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
-        Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
-        Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
-        Route::post('/cart/update-selection', [CartController::class, 'updateSelection'])->name('cart.update-selection');
-
-        // Coupon Actions
+        // Coupon Actions (login required to claim/apply coupons)
         Route::post('/coupon/claim', [CartController::class, 'claimCoupon'])->name('coupon.claim');
         Route::post('/coupon/apply', [CartController::class, 'applyCoupon'])->name('coupon.apply');
         Route::post('/coupon/remove', [CartController::class, 'removeCoupon'])->name('coupon.remove');
-
-        // Checkout
-        Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
-        Route::get('/checkout/shipping-rates', [CheckoutController::class, 'getShippingRates'])->name('checkout.shipping_rates');
-        Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
-        Route::get('/checkout/success/{id}', [CheckoutController::class, 'success'])->name('checkout.success');
 
         // Online Banking (FPX) & eWallet payment via local gateway
         Route::get('/checkout/payment/{order_id}', [PaymentController::class, 'checkout'])->name('checkout.payment');
         Route::get('/checkout/payment/status', [PaymentController::class, 'status'])->name('checkout.payment.status');
 
-        // Customer Profile Orders
+        // Customer Profile Orders History
         Route::get('/orders', [CheckoutController::class, 'orders'])->name('customer.orders');
 
         // ----------------------------------------------------
@@ -114,7 +121,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/products/edit/{id}', [AdminController::class, 'productEdit'])->name('admin.products.edit');
             Route::post('/products/update/{id}', [AdminController::class, 'productUpdate'])->name('admin.products.update');
             Route::post('/products/delete/{id}', [AdminController::class, 'productDestroy'])->name('admin.products.delete');
-            
+
             // Variations CRUD
             Route::post('/products/{productId}/variations', [AdminController::class, 'variationStore'])->name('admin.variations.store');
             Route::post('/variations/delete/{id}', [AdminController::class, 'variationDestroy'])->name('admin.variations.delete');

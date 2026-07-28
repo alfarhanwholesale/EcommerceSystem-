@@ -2,7 +2,18 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <h1 class="text-3xl font-extrabold text-slate-900 mb-8 serif-font">Checkout</h1>
+    <h1 class="text-3xl font-extrabold text-slate-900 mb-4 serif-font">Checkout</h1>
+
+    @guest
+    {{-- Guest notice banner --}}
+    <div class="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+        <span class="text-xl shrink-0 mt-0.5">👤</span>
+        <div class="text-sm">
+            <p class="font-bold text-amber-900">Anda membeli sebagai Tetamu (Guest)</p>
+            <p class="text-amber-700 mt-0.5">Tiada akaun diperlukan. Atau <a href="{{ route('login') }}" class="underline font-bold hover:text-amber-900">log masuk</a> / <a href="{{ route('register') }}" class="underline font-bold hover:text-amber-900">daftar</a> untuk nikmati kelebihan ahli (kupon, sejarah pesanan).</p>
+        </div>
+    </div>
+    @endguest
 
     <form action="{{ route('checkout.store') }}" method="POST" class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         @csrf
@@ -16,7 +27,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="customer_name" class="block text-sm font-semibold text-slate-700">Full Name</label>
-                        <input type="text" name="customer_name" id="customer_name" value="{{ old('customer_name', auth()->user()->name) }}" required
+                        <input type="text" name="customer_name" id="customer_name" value="{{ old('customer_name', auth()->user()?->name) }}" required
                                class="w-full mt-1.5 px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
                     </div>
                     <div>
@@ -26,6 +37,16 @@
                                placeholder="e.g. 01X XXXXXXXX">
                     </div>
                 </div>
+
+                @guest
+                {{-- Guest email field --}}
+                <div>
+                    <label for="customer_email" class="block text-sm font-semibold text-slate-700">Email Address <span class="text-xs text-slate-400 font-normal">(untuk penerimaan pesanan)</span></label>
+                    <input type="email" name="customer_email" id="customer_email" value="{{ old('customer_email') }}" required
+                           class="w-full mt-1.5 px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
+                           placeholder="contoh@email.com">
+                </div>
+                @endguest
 
                 <div>
                     <label for="street_address" class="block text-sm font-semibold text-slate-700">Street Address</label>
