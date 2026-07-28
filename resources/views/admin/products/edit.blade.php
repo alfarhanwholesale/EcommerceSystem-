@@ -10,7 +10,7 @@
     <!-- Header Navigation -->
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-xl font-bold text-slate-800 font-serif">Sunting Produk (Shopee Flow)</h2>
+            <h2 class="text-xl font-bold text-slate-800 font-serif">Sunting Produk</h2>
             <p class="text-xs text-slate-500 mt-0.5">Kemas kini maklumat produk, harga, variasi dan status stok.</p>
         </div>
         <a href="{{ route('admin.products') }}" class="text-slate-500 hover:text-slate-700 font-bold text-xs transition-colors flex items-center gap-1">
