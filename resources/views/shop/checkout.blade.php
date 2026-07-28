@@ -255,9 +255,15 @@
                         <span id="shipping-fee-amount" class="text-slate-800 font-bold">RM0.00</span>
                     </div>
 
+                    <!-- ToyyibPay Processing Fee (RM1) -->
+                    <div id="toyyibpay-fee-row" class="hidden flex justify-between text-blue-700 bg-blue-50 px-2.5 py-1.5 rounded-lg text-xs">
+                        <span class="font-semibold">Caj Pemprosesan ToyyibPay</span>
+                        <span class="font-bold">+ RM1.00</span>
+                    </div>
+
                     <div class="border-t border-slate-100 pt-4 flex justify-between text-base font-extrabold text-slate-900">
                         <span>Grand Total</span>
-                        <span class="text-emerald-800 text-lg">RM{{ number_format($total, 2) }}</span>
+                        <span class="text-emerald-800 text-lg" id="grand-total-display">RM{{ number_format($total, 2) }}</span>
                     </div>
                 </div>
 
@@ -266,6 +272,7 @@
                             class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all text-center">
                         Teruskan Pembayaran (RM{{ number_format($total, 2) }})
                     </button>
+                    <input type="hidden" name="toyyibpay_fee" id="toyyibpay_fee_input" value="0">
                 </div>
             </div>
         </div>
@@ -292,8 +299,10 @@
         const shippingFeeRow          = document.getElementById('shipping-fee-row');
         const shippingCourierNameSpan = document.getElementById('shipping-courier-name');
         const shippingFeeAmountSpan   = document.getElementById('shipping-fee-amount');
-        const grandTotalTextSpan      = document.querySelector('.text-emerald-800.text-lg');
+        const grandTotalTextSpan      = document.getElementById('grand-total-display');
         const checkoutSubmitBtn       = document.getElementById('checkout-submit-btn');
+        const toyyibpayFeeRow         = document.getElementById('toyyibpay-fee-row');
+        const toyyibpayFeeInput       = document.getElementById('toyyibpay_fee_input');
 
         const radioDelivery  = document.getElementById('shipping-method-delivery');
         const radioPickup    = document.getElementById('shipping-method-pickup');
@@ -304,16 +313,37 @@
         const subtotal    = {{ $subtotal }};
         const discount    = {{ $discount }};
         const totalWeight = {{ $totalWeight }};
+        const TOYYIBPAY_FEE = 1.00;
 
         let fetchTimeout  = null;
-        let lastFetched   = null; // track last fetched postcode+state
+        let lastFetched   = null;
+        let currentShippingFee = 0;
 
         // ── Update grand total display ─────────────────────────────────────
         function updateTotals(shippingFee) {
-            const grandTotal = Math.max(0, subtotal - discount + shippingFee);
+            currentShippingFee = shippingFee;
+            const isOnline = document.querySelector('input[name="payment_method"]:checked')?.value === 'online';
+            const processingFee = isOnline ? TOYYIBPAY_FEE : 0;
+            const grandTotal = Math.max(0, subtotal - discount + shippingFee + processingFee);
             if (grandTotalTextSpan) grandTotalTextSpan.textContent = 'RM' + grandTotal.toFixed(2);
             if (checkoutSubmitBtn)  checkoutSubmitBtn.textContent  = 'Teruskan Pembayaran (RM' + grandTotal.toFixed(2) + ')';
         }
+
+        // ── Toggle ToyyibPay fee on payment method change ──────────────────
+        document.querySelectorAll('input[name="payment_method"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                const isOnline = this.value === 'online';
+                if (toyyibpayFeeRow) {
+                    if (isOnline) {
+                        toyyibpayFeeRow.classList.remove('hidden');
+                    } else {
+                        toyyibpayFeeRow.classList.add('hidden');
+                    }
+                }
+                if (toyyibpayFeeInput) toyyibpayFeeInput.value = isOnline ? '1' : '0';
+                updateTotals(currentShippingFee);
+            });
+        });
 
         // ── Render courier cards from API response ─────────────────────────
         function renderCouriers(rates, isLive) {

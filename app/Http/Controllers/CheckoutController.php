@@ -241,7 +241,12 @@ class CheckoutController extends Controller
                                $request->input('state');
         }
 
-        $total = max(0.00, $subtotal - $discount + $shippingCost);
+        // ToyyibPay processing fee (RM1 for online payment only)
+        $toyyibpayFee = ($request->input('payment_method') === 'online')
+                        ? 1.00
+                        : 0.00;
+
+        $total = max(0.00, $subtotal - $discount + $shippingCost + $toyyibpayFee);
 
         DB::beginTransaction();
         try {
