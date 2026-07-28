@@ -330,16 +330,22 @@
         }
 
         // ── Toggle ToyyibPay fee on payment method change ──────────────────
+        function updatePaymentMethodFee() {
+            const checkedPayment = document.querySelector('input[name="payment_method"]:checked');
+            const isOnline = checkedPayment && checkedPayment.value === 'online';
+            if (toyyibpayFeeRow) {
+                toyyibpayFeeRow.style.display = isOnline ? 'flex' : 'none';
+            }
+            if (toyyibpayFeeInput) toyyibpayFeeInput.value = isOnline ? '1' : '0';
+            updateTotals(currentShippingFee);
+        }
+
         document.querySelectorAll('input[name="payment_method"]').forEach(function(radio) {
-            radio.addEventListener('change', function() {
-                const isOnline = this.value === 'online';
-                if (toyyibpayFeeRow) {
-                    toyyibpayFeeRow.style.display = isOnline ? 'flex' : 'none';
-                }
-                if (toyyibpayFeeInput) toyyibpayFeeInput.value = isOnline ? '1' : '0';
-                updateTotals(currentShippingFee);
-            });
+            radio.addEventListener('change', updatePaymentMethodFee);
         });
+
+        // Run on load
+        updatePaymentMethodFee();
 
         // ── Render courier cards from API response ─────────────────────────
         function renderCouriers(rates, isLive) {
