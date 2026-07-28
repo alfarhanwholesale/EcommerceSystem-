@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Intervention\Image\Laravel\Facades\Image;
 
 class AdminController extends Controller
@@ -129,16 +130,20 @@ class AdminController extends Controller
 
         // Process inline variations if submitted
         if ($request->filled('variations')) {
+            $hasWeightCol = Schema::hasColumn('product_variations', 'weight');
             foreach ($request->variations as $varData) {
                 if (!empty($varData['name']) && !empty($varData['value'])) {
-                    ProductVariation::create([
+                    $payload = [
                         'product_id' => $product->id,
                         'name'       => $varData['name'],
                         'value'      => $varData['value'],
                         'price'      => $varData['price'] ?: null,
-                        'weight'     => isset($varData['weight']) && $varData['weight'] !== '' ? (float)$varData['weight'] : null,
                         'stock'      => (int) ($varData['stock'] ?? 0),
-                    ]);
+                    ];
+                    if ($hasWeightCol) {
+                        $payload['weight'] = isset($varData['weight']) && $varData['weight'] !== '' ? (float)$varData['weight'] : null;
+                    }
+                    ProductVariation::create($payload);
                 }
             }
         }
@@ -240,6 +245,8 @@ class AdminController extends Controller
     public function variationStore(Request $request, $productId)
     {
         $this->checkAccess('admin');
+        $product = Product::findOrFail($productId);
+
         $request->validate([
             'variation_name' => 'required|string|max:255',
             'variation_value' => 'required|string|max:255',
@@ -248,14 +255,19 @@ class AdminController extends Controller
             'variation_stock' => 'required|integer|min:0',
         ]);
 
-        ProductVariation::create([
-            'product_id' => $productId,
+        $payload = [
+            'product_id' => $product->id,
             'name' => $request->variation_name,
             'value' => $request->variation_value,
             'price' => $request->variation_price,
-            'weight' => $request->filled('variation_weight') ? $request->variation_weight : null,
             'stock' => $request->variation_stock,
-        ]);
+        ];
+
+        if (Schema::hasColumn('product_variations', 'weight')) {
+            $payload['weight'] = $request->filled('variation_weight') ? $request->variation_weight : null;
+        }
+
+        ProductVariation::create($payload);
 
         return back()->with('success', 'Variation added successfully.');
     }

@@ -163,15 +163,20 @@
                 <input type="text" name="variations[${idx}][value]" required placeholder="cth. 500g, 1kg"
                        class="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600">
             </div>
-            <div class="col-span-3">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga (RM)</label>
-                <input type="number" name="variations[${idx}][price]" step="0.01" min="0" placeholder="Warisi jika kosong"
+            <div class="col-span-2">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Berat kg (Pilihan)</label>
+                <input type="number" name="variations[${idx}][weight]" step="0.01" min="0" placeholder="Auto"
                        class="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600">
             </div>
             <div class="col-span-2">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga (RM)</label>
+                <input type="number" name="variations[${idx}][price]" step="0.01" min="0" placeholder="Warisi"
+                       class="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600">
+            </div>
+            <div class="col-span-1">
                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Stok <span class="text-red-500">*</span></label>
                 <input type="number" name="variations[${idx}][stock]" required min="0" value="0"
-                       class="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                       class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600">
             </div>
             <div class="col-span-1 flex justify-end">
                 <button type="button" onclick="removeVariationRow(this)"

@@ -206,6 +206,7 @@ CREATE TABLE `product_variations` (
   `value` varchar(255) NOT NULL,
   `price` decimal(8,2) DEFAULT NULL,
   `stock` int(11) NOT NULL DEFAULT 0,
+  `weight` decimal(8,2) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
