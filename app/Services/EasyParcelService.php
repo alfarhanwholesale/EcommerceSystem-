@@ -75,8 +75,65 @@ class EasyParcelService
     }
 
     /**
+     * Get OAuth 2.0 Access Token using Client Credentials flow (EASYPARCEL_CLIENT_ID & EASYPARCEL_CLIENT_SECRET).
+     */
+    public function getAccessToken(): ?string
+    {
+        // Check cache first
+        $cacheKey = 'easyparcel_oauth_token_' . md5($this->clientId);
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        if (empty($this->clientId) || empty($this->clientSecret)) {
+            return null;
+        }
+
+        $endpoints = $this->sandbox
+            ? [
+                'http://demo.connect.easyparcel.my/oauth/token',
+                'http://demo.connect.easyparcel.my/?ac=EPGetToken',
+                'https://connect.easyparcel.my/oauth/token',
+                'https://connect.easyparcel.my/?ac=EPGetToken',
+              ]
+            : [
+                'https://connect.easyparcel.my/oauth/token',
+                'https://connect.easyparcel.my/?ac=EPGetToken',
+                'http://demo.connect.easyparcel.my/oauth/token',
+                'http://demo.connect.easyparcel.my/?ac=EPGetToken',
+              ];
+
+        foreach ($endpoints as $url) {
+            try {
+                $response = Http::timeout(10)->asForm()->post($url, [
+                    'grant_type'    => 'client_credentials',
+                    'client_id'     => $this->clientId,
+                    'client_secret' => $this->clientSecret,
+                    'app_id'        => $this->clientId,
+                    'secret_key'    => $this->clientSecret,
+                ]);
+
+                if ($response->successful()) {
+                    $json  = $response->json();
+                    $token = $json['access_token'] ?? ($json['token'] ?? ($json['result']['token'] ?? ($json['api'] ?? null)));
+                    if ($token) {
+                        $ttl = ($json['expires_in'] ?? 3600) - 60;
+                        Cache::put($cacheKey, $token, now()->addSeconds(max(60, $ttl)));
+                        Log::info('EasyParcel OAuth 2.0 token retrieved successfully from ' . $url);
+                        return $token;
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning("EasyParcel OAuth token attempt failed for {$url}: " . $e->getMessage());
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Get real-time shipping rates.
-     * Uses EasyParcel API if credentials are valid, otherwise falls back to local rate table.
+     * Tries live EasyParcel API with API Key or OAuth Access Token, otherwise uses official rate table.
      */
     public function getRates(string $destPostcode, float $totalWeight = 0.50, string $destState = ''): array
     {
@@ -84,25 +141,23 @@ class EasyParcelService
         $pickStateCode = $this->resolveStateCode($this->originState);
         $sendStateCode = $this->resolveStateCode($destState);
 
-        // ── Try live EasyParcel API ────────────────────────────────────────
+        // ── 1. Try Individual API Key or OAuth Access Token ───────────────
         $apiKey = env('EASYPARCEL_API_KEY', '');
-        $hasApiKey = !empty($apiKey)
-            && $apiKey !== 'your-easyparcel-api-key-here'
-            && !str_starts_with($apiKey, 'your-');
+        $token  = !empty($apiKey) && !str_starts_with($apiKey, 'your-')
+            ? $apiKey
+            : $this->getAccessToken();
 
-        if ($hasApiKey) {
+        if ($token) {
             $liveRates = $this->fetchLiveRates(
-                $apiKey, $destPostcode, $sendStateCode,
+                $token, $destPostcode, $sendStateCode,
                 $pickStateCode, $totalWeight
             );
             if (!empty($liveRates)) {
                 return $liveRates;
             }
-        } else {
-            Log::info('EasyParcel: EASYPARCEL_API_KEY not configured — using official rate table.');
         }
 
-        // ── Official published rate table fallback ─────────────────────────
+        // ── 2. Official published rate table (Zone & Weight accurate) ─────
         return $this->getOfficialRates($destPostcode, $totalWeight, $destState);
     }
 
