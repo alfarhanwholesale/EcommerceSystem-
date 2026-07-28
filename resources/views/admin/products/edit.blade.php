@@ -180,48 +180,50 @@
         <div class="border-t border-slate-100 pt-6">
             <h4 class="text-sm font-bold text-slate-800 mb-4">Add Variation</h4>
             
-            <form action="{{ route('admin.variations.store', $product->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <form action="{{ route('admin.variations.store', $product->id) }}" method="POST" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                 @csrf
                 <!-- Variation Name -->
-                <div>
+                <div class="md:col-span-2">
                     <label for="variation_name" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Name (e.g. Size)</label>
-                    <input type="text" name="variation_name" id="variation_name" required placeholder="Size, Weight, Grade..."
+                    <input type="text" name="variation_name" id="variation_name" required placeholder="Size, Weight..."
                            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
                 </div>
 
                 <!-- Variation Value -->
-                <div>
+                <div class="md:col-span-2">
                     <label for="variation_value" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Value (e.g. 1kg)</label>
-                    <input type="text" name="variation_value" id="variation_value" required placeholder="500g, 1kg, Grade A..."
+                    <input type="text" name="variation_value" id="variation_value" required placeholder="500g, 1kg..."
                            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
                 </div>
 
                 <!-- Weight Override -->
-                <div>
+                <div class="md:col-span-2">
                     <label for="variation_weight" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Weight kg (Optional)</label>
                     <input type="number" name="variation_weight" id="variation_weight" step="0.01" min="0" placeholder="Auto if empty"
                            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
                 </div>
 
                 <!-- Price Override -->
-                <div>
+                <div class="md:col-span-2">
                     <label for="variation_price" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Price override (Optional)</label>
                     <input type="number" name="variation_price" id="variation_price" step="0.01" min="0" placeholder="Inherited if empty"
                            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
                 </div>
 
-                <!-- Stock -->
-                <div>
+                <!-- Stock Quantity -->
+                <div class="md:col-span-2">
                     <label for="variation_stock" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Stock Quantity</label>
-                    <div class="flex gap-2">
-                        <input type="number" name="variation_stock" id="variation_stock" required min="0" value="0"
-                               class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
-                               </div>
-                            <button type="submit" 
-                                    class="bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2 px-3 rounded-lg text-xs uppercase tracking-wider transition-colors shrink-0">
-                                Add Option
-                            </button>
-                    </div>
+                    <input type="number" name="variation_stock" id="variation_stock" required min="0" value="0"
+                           class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all">
+                </div>
+
+                <!-- Submit Button -->
+                <div class="md:col-span-2">
+                    <button type="submit" 
+                            class="w-full bg-emerald-800 hover:bg-emerald-950 text-white font-bold py-2 px-3 rounded-lg text-xs uppercase tracking-wider transition-colors shrink-0 h-[38px] flex items-center justify-center">
+                        Add Option
+                    </button>
+                </div>
             </form>
         </div>
     </div>
