@@ -164,4 +164,44 @@ class CartAndCheckoutTest extends TestCase
         $rates = $response->json('rates');
         $this->assertNotEmpty($rates);
     }
+
+    public function test_easyparcel_oauth2_open_api_fetches_live_rates()
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            '*oauth/token*' => \Illuminate\Support\Facades\Http::response([
+                'access_token' => 'mock_oauth_access_token_123',
+                'expires_in'   => 3600,
+            ], 200),
+            '*EPRateCheckingBulk*' => \Illuminate\Support\Facades\Http::response([
+                'api_status' => 'Success',
+                'result' => [
+                    [
+                        'rates' => [
+                            [
+                                'service_id'   => 'EP-SERVICE-1',
+                                'service_name' => 'Next Day Delivery',
+                                'courier_name' => 'Pos Laju Live',
+                                'price'        => '9.90',
+                                'delivery'     => '1-2 days',
+                            ]
+                        ]
+                    ]
+                ]
+            ], 200),
+        ]);
+
+        config([
+            'services.easyparcel.client_id' => 'test_client_id',
+            'services.easyparcel.client_secret' => 'test_client_secret',
+        ]);
+
+        $service = new \App\Services\EasyParcelService();
+        $token = $service->getAccessToken();
+        $this->assertEquals('mock_oauth_access_token_123', $token);
+
+        $rates = $service->getRates('47100', 1.0, 'Selangor');
+        $this->assertNotEmpty($rates);
+        $this->assertEquals('Pos Laju Live', $rates[0]['courier_name']);
+        $this->assertTrue($rates[0]['is_live']);
+    }
 }

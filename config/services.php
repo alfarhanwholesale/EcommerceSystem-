@@ -36,7 +36,6 @@ return [
     ],
 
     'easyparcel' => [
-        'api_key' => env('EASYPARCEL_API_KEY'),
         'client_id' => env('EASYPARCEL_CLIENT_ID'),
         'client_secret' => env('EASYPARCEL_CLIENT_SECRET'),
         'url' => env('EASYPARCEL_BASE_URL', 'https://connect.easyparcel.my/?ac='),

@@ -49,20 +49,20 @@ class EasyParcelService
 
     public function __construct()
     {
-        $this->clientId     = env('EASYPARCEL_CLIENT_ID');
-        $this->clientSecret = env('EASYPARCEL_CLIENT_SECRET');
+        $this->clientId     = config('services.easyparcel.client_id', env('EASYPARCEL_CLIENT_ID'));
+        $this->clientSecret = config('services.easyparcel.client_secret', env('EASYPARCEL_CLIENT_SECRET'));
 
         $this->sandbox = filter_var(
-            env('EASYPARCEL_SANDBOX', false),
+            config('services.easyparcel.sandbox', env('EASYPARCEL_SANDBOX', false)),
             FILTER_VALIDATE_BOOLEAN
         );
 
-        $this->originPostcode = env('EASYPARCEL_ORIGIN_POSTCODE', '47100');
-        $this->originCity     = env('EASYPARCEL_ORIGIN_CITY',     'Puchong');
-        $this->originState    = env('EASYPARCEL_ORIGIN_STATE',     'Selangor');
-        $this->originName     = env('EASYPARCEL_ORIGIN_NAME',      'Alfarhan Trading');
-        $this->originPhone    = env('EASYPARCEL_ORIGIN_PHONE',     '0123456789');
-        $this->originAddress  = env('EASYPARCEL_ORIGIN_ADDRESS',   'No 1, Jalan Puchong, Industri Puchong');
+        $this->originPostcode = config('services.easyparcel.origin_postcode', env('EASYPARCEL_ORIGIN_POSTCODE', '47100'));
+        $this->originCity     = config('services.easyparcel.origin_city',     env('EASYPARCEL_ORIGIN_CITY',     'Puchong'));
+        $this->originState    = config('services.easyparcel.origin_state',    env('EASYPARCEL_ORIGIN_STATE',    'Selangor'));
+        $this->originName     = config('services.easyparcel.origin_name',     env('EASYPARCEL_ORIGIN_NAME',     'Alfarhan Trading'));
+        $this->originPhone    = config('services.easyparcel.origin_phone',    env('EASYPARCEL_ORIGIN_PHONE',    '0123456789'));
+        $this->originAddress  = config('services.easyparcel.origin_address',  env('EASYPARCEL_ORIGIN_ADDRESS',  'No 1, Jalan Puchong, Industri Puchong'));
     }
 
     /**
@@ -80,7 +80,7 @@ class EasyParcelService
     public function getAccessToken(): ?string
     {
         // Check cache first
-        $cacheKey = 'easyparcel_oauth_token_' . md5($this->clientId);
+        $cacheKey = 'easyparcel_oauth_token_' . md5($this->clientId ?? '');
         if (Cache::has($cacheKey)) {
             return Cache::get($cacheKey);
         }
@@ -133,7 +133,7 @@ class EasyParcelService
 
     /**
      * Get real-time shipping rates.
-     * Tries live EasyParcel API with API Key or OAuth Access Token, otherwise uses official rate table.
+     * Tries live EasyParcel Open API with OAuth 2.0 Access Token, otherwise uses official rate table.
      */
     public function getRates(string $destPostcode, float $totalWeight = 0.50, string $destState = ''): array
     {
@@ -141,11 +141,8 @@ class EasyParcelService
         $pickStateCode = $this->resolveStateCode($this->originState);
         $sendStateCode = $this->resolveStateCode($destState);
 
-        // ── 1. Try Individual API Key or OAuth Access Token ───────────────
-        $apiKey = env('EASYPARCEL_API_KEY', '');
-        $token  = !empty($apiKey) && !str_starts_with($apiKey, 'your-')
-            ? $apiKey
-            : $this->getAccessToken();
+        // ── 1. Try OAuth 2.0 Access Token (EasyParcel Open API) ───────────
+        $token = $this->getAccessToken();
 
         if ($token) {
             $liveRates = $this->fetchLiveRates(
@@ -162,10 +159,10 @@ class EasyParcelService
     }
 
     /**
-     * Call EasyParcel EPRateCheckingBulk with a valid Individual API Key.
+     * Call EasyParcel Open API EPRateCheckingBulk with OAuth 2.0 Access Token.
      */
     protected function fetchLiveRates(
-        string $apiKey,
+        string $token,
         string $destPostcode,
         string $sendStateCode,
         string $pickStateCode,
@@ -175,28 +172,30 @@ class EasyParcelService
             ? 'http://demo.connect.easyparcel.my/?ac=EPRateCheckingBulk'
             : 'https://connect.easyparcel.my/?ac=EPRateCheckingBulk';
 
-        $payload = [
-            'api'            => $apiKey,
-            'bulk'           => [[
-                'pick_code'    => $this->originPostcode,
-                'pick_state'   => $pickStateCode,
-                'pick_country' => 'MY',
-                'send_code'    => $destPostcode,
-                'send_state'   => $sendStateCode,
-                'send_country' => 'MY',
-                'weight'       => $totalWeight,
-                'width'        => 0,
-                'length'       => 0,
-                'height'       => 0,
-            ]],
-            'exclude_fields' => ['rates.*.pickup_point', 'rates.*.dropoff_point'],
-        ];
+        $bulkData = [[
+            'pick_code'    => $this->originPostcode,
+            'pick_state'   => $pickStateCode,
+            'pick_country' => 'MY',
+            'send_code'    => $destPostcode,
+            'send_state'   => $sendStateCode,
+            'send_country' => 'MY',
+            'weight'       => $totalWeight,
+            'width'        => 0,
+            'length'       => 0,
+            'height'       => 0,
+        ]];
 
         try {
-            $response = Http::timeout(15)->asForm()->post($endpoint, [
-                'api'  => $apiKey,
-                'bulk' => json_encode($payload['bulk']),
-            ]);
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                ])
+                ->asForm()
+                ->post($endpoint, [
+                    'api'          => $token,
+                    'access_token' => $token,
+                    'bulk'         => json_encode($bulkData),
+                ]);
 
             if (!$response->successful()) {
                 Log::warning("EasyParcel live API failed HTTP {$response->status()}");
@@ -220,12 +219,12 @@ class EasyParcelService
                         'is_live'      => true,
                     ];
                 }
-                Log::info('EasyParcel live rates fetched', ['count' => count($rates)]);
+                Log::info('EasyParcel Open API live rates fetched', ['count' => count($rates)]);
                 return $rates;
             }
 
             $errRemark = $data['error_remark'] ?? ($data['result'][0]['remarks'] ?? 'no rates');
-            Log::warning("EasyParcel API returned no rates: api_status={$apiStatus}, remark={$errRemark}");
+            Log::warning("EasyParcel Open API returned no rates: api_status={$apiStatus}, remark={$errRemark}");
         } catch (\Exception $e) {
             Log::error('EasyParcel fetchLiveRates exception: ' . $e->getMessage());
         }
@@ -364,16 +363,13 @@ class EasyParcelService
     }
 
     /**
-     * Book a shipment on EasyParcel (requires Individual API Key).
+     * Book a shipment on EasyParcel Open API (requires OAuth 2.0 Access Token).
      */
     public function createShipment($order): array
     {
-        $apiKey = env('EASYPARCEL_API_KEY', '');
-        $hasApiKey = !empty($apiKey)
-            && $apiKey !== 'your-easyparcel-api-key-here'
-            && !str_starts_with($apiKey, 'your-');
+        $token = $this->getAccessToken();
 
-        if (!$hasApiKey) {
+        if (!$token) {
             return $this->mockShipment($order);
         }
 
@@ -387,43 +383,49 @@ class EasyParcelService
             ? 'http://demo.connect.easyparcel.my/?ac=EPSubmitOrderBulkV3'
             : 'https://connect.easyparcel.my/?ac=EPSubmitOrderBulkV3';
 
-        $payload = [
-            'api'  => $apiKey,
-            'bulk' => [[
-                'reference'    => 'ORDER-' . $order->id,
-                'weight'       => $weight,
-                'width'        => 0,
-                'length'       => 0,
-                'height'       => 0,
-                'content'      => 'Alfarhan Wholesale Order #' . $order->id,
-                'value'        => $order->final_amount,
+        $bulkData = [[
+            'reference'    => 'ORDER-' . $order->id,
+            'weight'       => $weight,
+            'width'        => 0,
+            'length'       => 0,
+            'height'       => 0,
+            'content'      => 'Alfarhan Wholesale Order #' . $order->id,
+            'value'        => $order->final_amount,
 
-                // Sender
-                'pick_name'    => $this->originName,
-                'pick_contact' => $this->originPhone,
-                'pick_addr1'   => $this->originAddress,
-                'pick_city'    => $this->originCity,
-                'pick_state'   => $this->resolveStateCode($this->originState),
-                'pick_code'    => $this->originPostcode,
-                'pick_country' => 'MY',
+            // Sender
+            'pick_name'    => $this->originName,
+            'pick_contact' => $this->originPhone,
+            'pick_addr1'   => $this->originAddress,
+            'pick_city'    => $this->originCity,
+            'pick_state'   => $this->resolveStateCode($this->originState),
+            'pick_code'    => $this->originPostcode,
+            'pick_country' => 'MY',
 
-                // Receiver
-                'send_name'    => $order->customer_name,
-                'send_contact' => $order->customer_phone,
-                'send_email'   => $order->customer_email ?: 'customer@example.com',
-                'send_addr1'   => $order->delivery_address,
-                'send_city'    => $order->shipping_city    ?? 'City',
-                'send_state'   => $this->resolveStateCode($order->shipping_state ?? ''),
-                'send_code'    => $order->shipping_postcode ?? '50000',
-                'send_country' => 'MY',
+            // Receiver
+            'send_name'    => $order->customer_name,
+            'send_contact' => $order->customer_phone,
+            'send_email'   => $order->customer_email ?: 'customer@example.com',
+            'send_addr1'   => $order->delivery_address,
+            'send_city'    => $order->shipping_city    ?? 'City',
+            'send_state'   => $this->resolveStateCode($order->shipping_state ?? ''),
+            'send_code'    => $order->shipping_postcode ?? '50000',
+            'send_country' => 'MY',
 
-                'collect_date' => now()->addDay()->format('Y-m-d'),
-                'courier'      => [$order->shipping_courier],
-            ]],
-        ];
+            'collect_date' => now()->addDay()->format('Y-m-d'),
+            'courier'      => [$order->shipping_courier],
+        ]];
 
         try {
-            $response = Http::timeout(20)->asForm()->post($url, $payload);
+            $response = Http::timeout(20)
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                ])
+                ->asForm()
+                ->post($url, [
+                    'api'          => $token,
+                    'access_token' => $token,
+                    'bulk'         => json_encode($bulkData),
+                ]);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -443,7 +445,7 @@ class EasyParcelService
                 }
 
                 $remark = $data['error_remark'] ?? ($data['result'][0]['remarks'] ?? 'Unknown API error');
-                return ['status' => 'Failed', 'message' => 'EasyParcel API Error: ' . $remark];
+                return ['status' => 'Failed', 'message' => 'EasyParcel Open API Error: ' . $remark];
             }
 
             return ['status' => 'Failed', 'message' => 'API HTTP ' . $response->status()];
