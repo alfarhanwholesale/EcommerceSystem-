@@ -133,7 +133,7 @@ class EasyParcelService
 
     /**
      * Get real-time shipping rates.
-     * Tries live EasyParcel Open API with OAuth 2.0 Access Token, otherwise uses official rate table.
+     * Tries live EasyParcel Open API with OAuth 2.0 Access Token or configured keys, otherwise uses official rate table.
      */
     public function getRates(string $destPostcode, float $totalWeight = 0.50, string $destState = ''): array
     {
@@ -141,10 +141,19 @@ class EasyParcelService
         $pickStateCode = $this->resolveStateCode($this->originState);
         $sendStateCode = $this->resolveStateCode($destState);
 
-        // ── 1. Try OAuth 2.0 Access Token (EasyParcel Open API) ───────────
-        $token = $this->getAccessToken();
+        // Collect all potential API keys/tokens (OAuth token, Client ID, Client Secret, API Key)
+        $candidates = array_values(array_unique(array_filter([
+            $this->getAccessToken(),
+            $this->clientId,
+            $this->clientSecret,
+            env('EASYPARCEL_API_KEY'),
+        ])));
 
-        if ($token) {
+        foreach ($candidates as $token) {
+            if (empty($token) || str_starts_with($token, 'your-')) {
+                continue;
+            }
+
             $liveRates = $this->fetchLiveRates(
                 $token, $destPostcode, $sendStateCode,
                 $pickStateCode, $totalWeight
@@ -159,7 +168,7 @@ class EasyParcelService
     }
 
     /**
-     * Call EasyParcel Open API EPRateCheckingBulk with OAuth 2.0 Access Token.
+     * Call EasyParcel Open API EPRateCheckingBulk with OAuth 2.0 Access Token or Key.
      */
     protected function fetchLiveRates(
         string $token,
@@ -168,9 +177,15 @@ class EasyParcelService
         string $pickStateCode,
         float  $totalWeight
     ): array {
-        $endpoint = $this->sandbox
-            ? 'http://demo.connect.easyparcel.my/?ac=EPRateCheckingBulk'
-            : 'https://connect.easyparcel.my/?ac=EPRateCheckingBulk';
+        $endpoints = $this->sandbox
+            ? [
+                'http://demo.connect.easyparcel.my/?ac=EPRateCheckingBulk',
+                'https://connect.easyparcel.my/?ac=EPRateCheckingBulk',
+              ]
+            : [
+                'https://connect.easyparcel.my/?ac=EPRateCheckingBulk',
+                'http://demo.connect.easyparcel.my/?ac=EPRateCheckingBulk',
+              ];
 
         $bulkData = [[
             'pick_code'    => $this->originPostcode,
@@ -185,48 +200,50 @@ class EasyParcelService
             'height'       => 0,
         ]];
 
-        try {
-            $response = Http::timeout(15)
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . $token,
-                ])
-                ->asForm()
-                ->post($endpoint, [
-                    'api'          => $token,
-                    'access_token' => $token,
-                    'bulk'         => json_encode($bulkData),
-                ]);
+        foreach ($endpoints as $endpoint) {
+            try {
+                $response = Http::timeout(12)
+                    ->withHeaders([
+                        'Authorization' => 'Bearer ' . $token,
+                    ])
+                    ->asForm()
+                    ->post($endpoint, [
+                        'api'          => $token,
+                        'access_token' => $token,
+                        'bulk'         => json_encode($bulkData),
+                    ]);
 
-            if (!$response->successful()) {
-                Log::warning("EasyParcel live API failed HTTP {$response->status()}");
-                return [];
-            }
-
-            $data      = $response->json();
-            $apiStatus = strtolower($data['api_status'] ?? '');
-            $rawRates  = $data['result'][0]['rates'] ?? ($data['result']['rates'] ?? ($data['rates'] ?? null));
-
-            if ($apiStatus === 'success' && !empty($rawRates)) {
-                $rates = [];
-                foreach ($rawRates as $rate) {
-                    $rates[] = [
-                        'service_id'   => $rate['service_id']   ?? '',
-                        'service_name' => $rate['service_name'] ?? 'Standard Delivery',
-                        'courier_name' => $rate['courier_name'] ?? ($rate['courier_id'] ?? 'Courier'),
-                        'price'        => (float) ($rate['price'] ?? 0),
-                        'delivery'     => $rate['delivery']     ?? '-',
-                        'logo'         => $rate['courier_logo'] ?? null,
-                        'is_live'      => true,
-                    ];
+                if (!$response->successful()) {
+                    Log::warning("EasyParcel live API HTTP failed for {$endpoint}: status {$response->status()}");
+                    continue;
                 }
-                Log::info('EasyParcel Open API live rates fetched', ['count' => count($rates)]);
-                return $rates;
-            }
 
-            $errRemark = $data['error_remark'] ?? ($data['result'][0]['remarks'] ?? 'no rates');
-            Log::warning("EasyParcel Open API returned no rates: api_status={$apiStatus}, remark={$errRemark}");
-        } catch (\Exception $e) {
-            Log::error('EasyParcel fetchLiveRates exception: ' . $e->getMessage());
+                $data      = $response->json();
+                $apiStatus = strtolower($data['api_status'] ?? '');
+                $rawRates  = $data['result'][0]['rates'] ?? ($data['result']['rates'] ?? ($data['rates'] ?? null));
+
+                if ($apiStatus === 'success' && !empty($rawRates)) {
+                    $rates = [];
+                    foreach ($rawRates as $rate) {
+                        $rates[] = [
+                            'service_id'   => $rate['service_id']   ?? '',
+                            'service_name' => $rate['service_name'] ?? 'Standard Delivery',
+                            'courier_name' => $rate['courier_name'] ?? ($rate['courier_id'] ?? 'Courier'),
+                            'price'        => (float) ($rate['price'] ?? 0),
+                            'delivery'     => $rate['delivery']     ?? '-',
+                            'logo'         => $rate['courier_logo'] ?? null,
+                            'is_live'      => true,
+                        ];
+                    }
+                    Log::info('EasyParcel Open API live rates fetched successfully', ['count' => count($rates), 'endpoint' => $endpoint]);
+                    return $rates;
+                }
+
+                $errRemark = $data['error_remark'] ?? ($data['result'][0]['remarks'] ?? 'no rates');
+                Log::warning("EasyParcel Open API returned error for {$endpoint}: api_status={$apiStatus}, remark={$errRemark}");
+            } catch (\Exception $e) {
+                Log::error("EasyParcel fetchLiveRates exception for {$endpoint}: " . $e->getMessage());
+            }
         }
 
         return [];
