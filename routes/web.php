@@ -55,7 +55,8 @@ Route::post('/cart/update-selection', [CartController::class, 'updateSelection']
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
 Route::get('/checkout/shipping-rates', [CheckoutController::class, 'getShippingRates'])->name('checkout.shipping_rates');
 Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
-Route::get('/checkout/success/{id}', [CheckoutController::class, 'success'])->name('checkout.success');
+Route::get('/checkout/success/{id?}', [CheckoutController::class, 'success'])->name('checkout.success');
+Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
 
 // Online Banking (FPX) & eWallet payment via gateway (Guest & Auth)
 Route::get('/checkout/payment/{order_id}', [PaymentController::class, 'checkout'])->name('checkout.payment');
@@ -71,6 +72,8 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/login/google', [AuthController::class, 'loginWithGoogle'])->name('login.google');
+    Route::get('/auth/callback', [AuthController::class, 'handleGoogleCallback'])->name('auth.callback');
+    Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 
     // Forgot Password
     Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
@@ -85,8 +88,9 @@ Route::middleware('guest')->group(function () {
 
 Route::any('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Payment gateway webhook (must be outside auth — called by ToyyibPay/Billplz servers)
+// Payment gateway & courier webhook (must be outside auth — called by ToyyibPay/Billplz/EasyParcel servers)
 Route::post('/webhook/payment', [PaymentController::class, 'webhook'])->name('webhook.payment');
+Route::post('/payment/webhook', [PaymentController::class, 'handleWebhook'])->name('payment.webhook');
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Logged-in Customer Features (Coupons, Order History)

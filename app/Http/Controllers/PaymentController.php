@@ -104,7 +104,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Server-to-server webhook/callback from ToyyibPay.
+     * Server-to-server webhook/callback from ToyyibPay / Billplz / Payment gateway.
      */
     public function webhook(Request $request): Response
     {
@@ -114,6 +114,14 @@ class PaymentController extends Controller
             'billplz' => $this->handleBillplzWebhook($request),
             default   => $this->handleToyyibPayWebhook($request),
         };
+    }
+
+    /**
+     * Alias method for webhook handler.
+     */
+    public function handleWebhook(Request $request): Response
+    {
+        return $this->webhook($request);
     }
 
     // =========================================================================

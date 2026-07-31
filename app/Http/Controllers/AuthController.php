@@ -188,6 +188,73 @@ class AuthController extends Controller
         }
     }
 
+    // Google OAuth Callback Route Handler
+    public function handleGoogleCallback(Request $request)
+    {
+        // 1. If accessed directly without OAuth code, id_token, or credential parameters
+        if (!$request->has('code') && !$request->has('id_token') && !$request->has('credential')) {
+            return redirect()->route('login')->with('error', 'Akses laluan callback memerlukan proses log masuk Google.');
+        }
+
+        // 2. If id_token is provided in request
+        if ($request->has('id_token')) {
+            return $this->loginWithGoogle($request);
+        }
+
+        // 3. If standard OAuth 'code' is returned from Google callback URL
+        if ($request->has('code')) {
+            $code = $request->query('code');
+            $clientId = config('services.google.client_id') ?? env('GOOGLE_CLIENT_ID');
+            $clientSecret = config('services.google.client_secret') ?? env('GOOGLE_CLIENT_SECRET');
+            $redirectUri = config('services.google.redirect') ?? env('GOOGLE_REDIRECT_URI', url('/auth/callback'));
+
+            if ($clientId && $clientSecret) {
+                $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
+                    'client_id' => $clientId,
+                    'client_secret' => $clientSecret,
+                    'redirect_uri' => $redirectUri,
+                    'grant_type' => 'authorization_code',
+                    'code' => $code,
+                ]);
+
+                if ($response->successful()) {
+                    $tokenData = $response->json();
+                    $accessToken = $tokenData['access_token'] ?? null;
+
+                    if ($accessToken) {
+                        $userResponse = Http::withToken($accessToken)->get('https://www.googleapis.com/oauth2/v3/userinfo');
+                        if ($userResponse->successful()) {
+                            $userData = $userResponse->json();
+                            $email = $userData['email'] ?? null;
+                            $name = $userData['name'] ?? 'Google User';
+
+                            if ($email) {
+                                $user = User::firstOrCreate(
+                                    ['email' => $email],
+                                    [
+                                        'name' => $name,
+                                        'password' => Hash::make(Str::random(24)),
+                                        'role' => 'customer',
+                                    ]
+                                );
+
+                                Auth::login($user, true);
+                                $request->session()->regenerate();
+
+                                if ($user->role === 'customer') {
+                                    CartController::mergeGuestCart($user->id);
+                                }
+                                return redirect()->intended(route('shop.home'))->with('success', 'Log masuk berjaya melalui Google!');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return redirect()->route('login')->with('error', 'Gagal melengkapkan pengesahan log masuk Google.');
+    }
+
     // Forgot Password - Show Form
     public function showForgotPasswordForm()
     {

@@ -359,10 +359,17 @@ class CheckoutController extends Controller
     //  SUCCESS PAGE
     // ─────────────────────────────────────────────────────────────────
 
-    public function success(Request $request, $id)
+    public function success(Request $request, $id = null)
     {
         $user  = Auth::user();
         $token = $request->query('token');
+
+        if (!$id) {
+            if ($user) {
+                return redirect()->route('customer.orders')->with('info', 'Sila lihat sejarah pesanan anda.');
+            }
+            return redirect()->route('shop.home');
+        }
 
         if ($user) {
             $order = Order::with('items.product', 'items.variation')
@@ -378,6 +385,15 @@ class CheckoutController extends Controller
         }
 
         return view('shop.success', compact('order'));
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    //  CANCEL PAGE / FALLBACK
+    // ─────────────────────────────────────────────────────────────────
+
+    public function cancel(Request $request)
+    {
+        return redirect()->route('shop.cart')->with('info', 'Pembayaran / Pembelian anda telah dibatalkan.');
     }
 
     // ─────────────────────────────────────────────────────────────────
