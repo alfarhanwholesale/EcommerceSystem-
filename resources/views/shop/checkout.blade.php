@@ -151,29 +151,36 @@
                 </div>
             </div>
 
-            {{-- Courier Rate Selection (shown for delivery mode) --}}
+            {{-- Courier Rate Card (Single Label "Harga Kurier") --}}
             <div id="courier-card" class="bg-white border border-emerald-100 rounded-2xl shadow-xs p-6 md:p-8 space-y-4">
                 <div class="flex items-center justify-between border-b border-emerald-50 pb-2">
-                    <h3 class="text-lg font-bold text-emerald-950">🚚 Pilihan Kurier</h3>
+                    <h3 class="text-lg font-bold text-emerald-950">🚚 Harga Kurier</h3>
                     <span id="courier-live-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase tracking-wide">● Live</span>
                     <span id="courier-estimate-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wide">⚠ Taksiran</span>
                 </div>
-                <p class="text-xs text-slate-500" id="courier-hint">Sila lengkapkan poskod (5 digit) dan negeri — kadar kurier akan dikira secara automatik.</p>
+                <p class="text-xs text-slate-500" id="courier-hint">Sila masukkan poskod (5 digit) dan pilih negeri untuk mengira harga kurier secara automatik.</p>
 
                 <input type="hidden" name="shipping_courier" id="shipping_courier">
                 <input type="hidden" name="shipping_service" id="shipping_service">
                 <input type="hidden" name="shipping_cost" id="shipping_cost" value="0.00">
 
-                <div id="courier-loading" class="hidden text-center py-6">
-                    <svg class="animate-spin h-8 w-8 text-emerald-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <div id="courier-loading" class="hidden text-center py-4">
+                    <svg class="animate-spin h-6 w-6 text-emerald-700 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <p class="text-xs text-slate-500 mt-2 font-medium">Sedang mengira kadar kurier terbaik...</p>
+                    <p class="text-xs text-slate-500 mt-2 font-medium">Sedang mengira harga kurier...</p>
                 </div>
 
-                <div id="courier-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {{-- Dynamic couriers loaded via JS --}}
+                <div id="courier-single-display" class="bg-emerald-50/80 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">📦</span>
+                        <div>
+                            <span class="block font-bold text-sm text-emerald-950">Harga Kurier</span>
+                            <span class="block text-xs text-slate-500" id="courier-detail-text">Dikira automatik mengikut poskod & negeri</span>
+                        </div>
+                    </div>
+                    <span class="font-extrabold text-base text-emerald-700" id="courier-price-text">RM0.00</span>
                 </div>
             </div>
 
@@ -286,11 +293,13 @@
         const postcodeField    = document.getElementById('postcode');
         const stateField       = document.getElementById('state');
         const courierCard      = document.getElementById('courier-card');
-        const courierList      = document.getElementById('courier-list');
         const courierLoading   = document.getElementById('courier-loading');
         const courierHint      = document.getElementById('courier-hint');
         const liveBadge        = document.getElementById('courier-live-badge');
         const estimateBadge    = document.getElementById('courier-estimate-badge');
+        const courierSingleDisplay = document.getElementById('courier-single-display');
+        const courierDetailText    = document.getElementById('courier-detail-text');
+        const courierPriceText     = document.getElementById('courier-price-text');
 
         const shippingCourierInput    = document.getElementById('shipping_courier');
         const shippingServiceInput    = document.getElementById('shipping_service');
@@ -347,70 +356,38 @@
         // Run on load
         updatePaymentMethodFee();
 
-        // ── Render courier cards from API response ─────────────────────────
+        // ── Render single courier price from API response ──────────────────
         function renderCouriers(rates, isLive) {
-            courierList.innerHTML = '';
-
             // Toggle live vs estimate badge
             if (liveBadge)      liveBadge.classList.toggle('hidden', !isLive);
             if (estimateBadge)  estimateBadge.classList.toggle('hidden', isLive);
 
             if (!rates || rates.length === 0) {
-                courierList.innerHTML = '<p class="text-xs text-orange-600 col-span-2 text-center font-medium py-4">Tiada kurier tersedia untuk poskod/negeri ini. Sila semak semula maklumat alamat.</p>';
+                if (courierDetailText) courierDetailText.textContent = 'Tiada kurier tersedia untuk poskod/negeri ini';
+                if (courierPriceText)  courierPriceText.textContent  = 'RM0.00';
+                shippingCourierInput.value = '';
+                shippingServiceInput.value = '';
+                shippingCostInput.value    = '0.00';
+                shippingFeeRow.classList.add('hidden');
+                updateTotals(0);
                 return;
             }
 
-            rates.forEach(function(rate, i) {
-                const card = document.createElement('label');
-                card.className = 'border-2 border-slate-200 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:bg-emerald-50/40 transition-all bg-white gap-3';
+            // Pick the best rate (rates[0]) automatically
+            const rate  = rates[0];
+            const price = parseFloat(rate.price);
 
-                const logoHtml = rate.logo
-                    ? '<img src="' + rate.logo + '" alt="' + rate.courier_name + '" class="h-8 w-auto object-contain rounded" onerror="this.style.display=\'none\'" />'
-                    : '<div class="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">' + rate.courier_name.charAt(0) + '</div>';
+            shippingCourierInput.value         = rate.courier_name;
+            shippingServiceInput.value         = rate.service_name;
+            shippingCostInput.value            = price.toFixed(2);
+            shippingCourierNameSpan.textContent = rate.courier_name;
+            shippingFeeAmountSpan.textContent   = 'RM' + price.toFixed(2);
+            shippingFeeRow.classList.remove('hidden');
 
-                card.innerHTML = [
-                    '<div class="flex items-center gap-3 flex-1 min-w-0">',
-                        '<input type="radio" name="selected_courier"',
-                        ' id="courier_option_' + i + '"',
-                        ' value="' + rate.service_id + '"',
-                        ' data-courier="' + rate.courier_name.replace(/"/g, '&quot;') + '"',
-                        ' data-service="' + rate.service_name.replace(/"/g, '&quot;') + '"',
-                        ' data-price="' + rate.price + '"',
-                        ' class="h-4 w-4 shrink-0 text-emerald-600 focus:ring-emerald-500">',
-                        logoHtml,
-                        '<div class="min-w-0">',
-                            '<span class="block font-bold text-sm text-slate-800 truncate">' + rate.courier_name + '</span>',
-                            '<span class="block text-[10px] text-slate-500 mt-0.5">' + rate.service_name + ' &bull; ' + rate.delivery + '</span>',
-                        '</div>',
-                    '</div>',
-                    '<span class="font-extrabold text-sm text-emerald-700 shrink-0 ml-2">RM' + parseFloat(rate.price).toFixed(2) + '</span>'
-                ].join('');
+            if (courierDetailText) courierDetailText.textContent = rate.courier_name + ' (' + rate.delivery + ')';
+            if (courierPriceText)  courierPriceText.textContent  = 'RM' + price.toFixed(2);
 
-                // Selection handler
-                card.querySelector('input').addEventListener('change', function () {
-                    document.querySelectorAll('#courier-list label').forEach(function(l) {
-                        l.classList.remove('border-emerald-500', 'bg-emerald-50');
-                        l.classList.add('border-slate-200', 'bg-white');
-                    });
-                    card.classList.remove('border-slate-200', 'bg-white');
-                    card.classList.add('border-emerald-500', 'bg-emerald-50');
-
-                    const price = parseFloat(this.dataset.price);
-                    shippingCourierInput.value         = this.dataset.courier;
-                    shippingServiceInput.value         = this.dataset.service;
-                    shippingCostInput.value            = price.toFixed(2);
-                    shippingCourierNameSpan.textContent = this.dataset.courier;
-                    shippingFeeAmountSpan.textContent   = 'RM' + price.toFixed(2);
-                    shippingFeeRow.classList.remove('hidden');
-                    updateTotals(price);
-                });
-
-                courierList.appendChild(card);
-            });
-
-            // Auto-select cheapest
-            const firstRadio = courierList.querySelector('input[type=radio]');
-            if (firstRadio) firstRadio.click();
+            updateTotals(price);
         }
 
         // ── Fetch live courier rates ───────────────────────────────────────
@@ -422,7 +399,7 @@
             const cacheKey = postcode + '|' + state;
 
             if (postcode.length !== 5 || !state) {
-                if (courierHint) courierHint.textContent = 'Sila lengkapkan poskod (5 digit) dan negeri — kadar kurier akan dikira secara automatik.';
+                if (courierHint) courierHint.textContent = 'Sila masukkan poskod (5 digit) dan pilih negeri untuk mengira harga kurier secara automatik.';
                 return;
             }
 
@@ -432,12 +409,11 @@
 
             if (courierHint) courierHint.textContent = '';
 
-            // Show loading, hide old list
-            courierLoading.classList.remove('hidden');
-            courierList.classList.add('hidden');
-            courierList.innerHTML = '';
-            if (liveBadge)      liveBadge.classList.add('hidden');
-            if (estimateBadge)  estimateBadge.classList.add('hidden');
+            // Show loading
+            if (courierLoading) courierLoading.classList.remove('hidden');
+            if (courierSingleDisplay) courierSingleDisplay.classList.add('opacity-50');
+            if (liveBadge)     liveBadge.classList.add('hidden');
+            if (estimateBadge) estimateBadge.classList.add('hidden');
 
             // Reset selections
             shippingCourierInput.value = '';
@@ -453,20 +429,21 @@
             fetch(url)
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
-                    courierLoading.classList.add('hidden');
-                    courierList.classList.remove('hidden');
+                    if (courierLoading) courierLoading.classList.add('hidden');
+                    if (courierSingleDisplay) courierSingleDisplay.classList.remove('opacity-50');
 
                     if (data.success) {
                         renderCouriers(data.rates, data.is_live === true);
                     } else {
-                        courierList.innerHTML = '<p class="text-xs text-red-600 col-span-2 text-center font-medium py-4">Ralat: ' + (data.message || 'Gagal mendapatkan kadar kurier.') + '</p>';
+                        if (courierDetailText) courierDetailText.textContent = 'Ralat: ' + (data.message || 'Gagal mendapatkan kadar kurier.');
+                        if (courierPriceText)  courierPriceText.textContent  = 'RM0.00';
                     }
                 })
                 .catch(function(err) {
                     console.error('Courier fetch error:', err);
-                    courierLoading.classList.add('hidden');
-                    courierList.classList.remove('hidden');
-                    courierList.innerHTML = '<p class="text-xs text-red-600 col-span-2 text-center font-medium py-4">Gagal menghubungi pelayan. Sila muat semula halaman dan cuba lagi.</p>';
+                    if (courierLoading) courierLoading.classList.add('hidden');
+                    if (courierSingleDisplay) courierSingleDisplay.classList.remove('opacity-50');
+                    if (courierDetailText) courierDetailText.textContent = 'Gagal menghubungi pelayan. Sila cuba lagi.';
                 });
         }
 

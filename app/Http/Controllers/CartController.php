@@ -260,7 +260,7 @@ class CartController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate(['quantity' => 'required|integer|min:1']);
-        $quantity = $request->quantity;
+        $quantity = (int) $request->quantity;
         $user     = Auth::user();
 
         if ($user) {
@@ -268,10 +268,16 @@ class CartController extends Controller
 
             if ($cartItem->product_variation_id) {
                 if ($cartItem->variation->stock < $quantity) {
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Hanya ' . $cartItem->variation->stock . ' unit tersedia.']);
+                    }
                     return back()->with('error', 'Hanya ' . $cartItem->variation->stock . ' unit tersedia.');
                 }
             } else {
                 if ($cartItem->product->stock < $quantity) {
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Hanya ' . $cartItem->product->stock . ' unit tersedia.']);
+                    }
                     return back()->with('error', 'Hanya ' . $cartItem->product->stock . ' unit tersedia.');
                 }
             }
@@ -288,11 +294,17 @@ class CartController extends Controller
                     if (! empty($entry['product_variation_id'])) {
                         $v = ProductVariation::find($entry['product_variation_id']);
                         if ($v && $v->stock < $quantity) {
+                            if ($request->ajax() || $request->wantsJson()) {
+                                return response()->json(['success' => false, 'message' => 'Hanya ' . $v->stock . ' unit tersedia.']);
+                            }
                             return back()->with('error', 'Hanya ' . $v->stock . ' unit tersedia.');
                         }
                     } else {
                         $p = Product::find($entry['product_id']);
                         if ($p && $p->stock < $quantity) {
+                            if ($request->ajax() || $request->wantsJson()) {
+                                return response()->json(['success' => false, 'message' => 'Hanya ' . $p->stock . ' unit tersedia.']);
+                            }
                             return back()->with('error', 'Hanya ' . $p->stock . ' unit tersedia.');
                         }
                     }
@@ -304,6 +316,61 @@ class CartController extends Controller
             unset($entry);
 
             if ($updated) $this->saveGuestCart($cart);
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $subtotal     = 0;
+            $totalWeight  = 0;
+            $itemSubtotal = 0;
+            $itemWeight   = 0;
+
+            if ($user) {
+                $cartItems = CartItem::with(['product', 'variation'])->where('user_id', $user->id)->get();
+                foreach ($cartItems as $ci) {
+                    if ($ci->id == $id) {
+                        $itemSubtotal = $ci->subtotal;
+                        $itemWeight   = $ci->item_weight;
+                    }
+                    if ($ci->is_selected) {
+                        $subtotal    += $ci->subtotal;
+                        $totalWeight += $ci->item_weight;
+                    }
+                }
+                $discount   = 0.00;
+                $couponCode = session('applied_coupon_code');
+                if ($couponCode) {
+                    $coupon = Coupon::where('code', $couponCode)->first();
+                    if ($coupon && $coupon->isValidForUser($user, $subtotal)) {
+                        $discount = $coupon->calculateDiscount($subtotal);
+                    }
+                }
+                $total = max(0.00, $subtotal - $discount);
+            } else {
+                $items = $this->buildGuestCartObjects($this->getGuestCart());
+                foreach ($items as $ci) {
+                    if ($ci->id == $id) {
+                        $itemSubtotal = $ci->subtotal;
+                        $itemWeight   = $ci->item_weight;
+                    }
+                    if ($ci->is_selected) {
+                        $subtotal    += $ci->subtotal;
+                        $totalWeight += $ci->item_weight;
+                    }
+                }
+                $discount = 0.00;
+                $total    = $subtotal;
+            }
+
+            return response()->json([
+                'success'       => true,
+                'item_id'       => $id,
+                'quantity'      => $quantity,
+                'item_subtotal' => number_format($itemSubtotal, 2),
+                'item_weight'   => (float) $itemWeight,
+                'subtotal'      => number_format($subtotal, 2),
+                'total'         => number_format($total, 2),
+                'discount'      => number_format($discount, 2),
+            ]);
         }
 
         return redirect()->route('shop.cart')->with('success', 'Troli dikemas kini.');

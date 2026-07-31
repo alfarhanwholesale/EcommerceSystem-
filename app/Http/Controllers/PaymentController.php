@@ -57,16 +57,28 @@ class PaymentController extends Controller
      */
     public function status(Request $request): RedirectResponse
     {
-        $orderId = $request->integer('order_id');
+        $orderId = $request->integer('order_id') ?: $request->integer('id');
         $token   = $request->query('token');
         $user    = Auth::user();
 
-        if ($user) {
-            $order = Order::where('user_id', $user->id)->findOrFail($orderId);
-        } elseif ($token) {
-            $order = Order::where('id', $orderId)->where('guest_token', $token)->firstOrFail();
-        } else {
-            $order = Order::findOrFail($orderId);
+        $order = null;
+        if ($orderId) {
+            if ($user) {
+                $order = Order::where('user_id', $user->id)->find($orderId);
+            }
+            if (! $order && $token) {
+                $order = Order::where('id', $orderId)->where('guest_token', $token)->first();
+            }
+            if (! $order) {
+                $order = Order::find($orderId);
+            }
+        }
+        if (! $order && $request->input('billcode')) {
+            $order = Order::where('payment_bill_code', $request->input('billcode'))->first();
+        }
+
+        if (! $order) {
+            return redirect()->route('shop.index')->with('error', 'Pesanan tidak dijumpai.');
         }
 
         $isPaid = match (config('payment.gateway')) {
@@ -91,16 +103,14 @@ class PaymentController extends Controller
         }
 
         if ((string) $request->input('status_id') === '2') {
-            if ($user) {
-                return redirect()->route('customer.orders')->with('info', 'Pembayaran masih dalam proses.');
-            }
-            return redirect()->route('checkout.success', $successParams)->with('info', 'Pembayaran masih dalam proses.');
+            return redirect()
+                ->route('checkout.success', $successParams)
+                ->with('info', 'Pembayaran masih dalam proses (Pending).');
         }
 
-        if ($user) {
-            return redirect()->route('customer.orders')->with('error', 'Pembayaran tidak dilengkapkan.');
-        }
-        return redirect()->route('shop.index')->with('error', 'Pembayaran tidak dilengkapkan.');
+        return redirect()
+            ->route('checkout.success', $successParams)
+            ->with('error', 'Pembayaran tidak dilengkapkan atau dibatalkan.');
     }
 
     /**
@@ -205,8 +215,13 @@ class PaymentController extends Controller
             // Mark order as paid with simulation reference
             $this->markOrderAsPaid($order, 'SANDBOX-SIM-' . strtoupper(substr(md5($order->id . time()), 0, 8)));
 
+            $params = ['id' => $order->id];
+            if ($order->guest_token) {
+                $params['token'] = $order->guest_token;
+            }
+
             return redirect()
-                ->route('checkout.success', $order->id)
+                ->route('checkout.success', $params)
                 ->with('success', '✅ Simulasi bayaran berjaya! (Mode Ujian — Tiada bayaran sebenar diproses)');
         }
 

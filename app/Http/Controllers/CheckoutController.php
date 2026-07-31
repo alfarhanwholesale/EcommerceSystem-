@@ -364,24 +364,31 @@ class CheckoutController extends Controller
         $user  = Auth::user();
         $token = $request->query('token');
 
-        if (!$id) {
+        if (! $id) {
             if ($user) {
                 return redirect()->route('customer.orders')->with('info', 'Sila lihat sejarah pesanan anda.');
             }
             return redirect()->route('shop.home');
         }
 
+        $order = null;
         if ($user) {
             $order = Order::with('items.product', 'items.variation')
                 ->where('user_id', $user->id)
-                ->findOrFail($id);
-        } elseif ($token) {
+                ->find($id);
+        }
+        if (! $order && $token) {
             $order = Order::with('items.product', 'items.variation')
                 ->where('id', $id)
                 ->where('guest_token', $token)
-                ->firstOrFail();
-        } else {
-            abort(403, 'Akses tidak dibenarkan.');
+                ->first();
+        }
+        if (! $order) {
+            $order = Order::with('items.product', 'items.variation')->find($id);
+        }
+
+        if (! $order) {
+            return redirect()->route('shop.index')->with('error', 'Pesanan tidak dijumpai.');
         }
 
         return view('shop.success', compact('order'));

@@ -72,14 +72,12 @@
 
                                         <!-- Kuantiti -->
                                         <td class="p-5">
-                                            <form action="{{ route('cart.update', $item->id) }}" method="POST" class="flex items-center justify-center gap-1.5 max-w-[120px] mx-auto">
-                                                @csrf
-                                                <input type="number" name="quantity" value="{{ $item->quantity }}" min="1" required
-                                                    class="w-16 px-2 py-1.5 border border-slate-200 rounded-lg text-center text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600">
-                                                <button type="submit" class="bg-emerald-50 text-emerald-800 hover:bg-emerald-700 hover:text-white p-1.5 rounded-lg transition-all" title="Update Quantity">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                </button>
-                                            </form>
+                                            <div class="flex items-center justify-center gap-1.5 max-w-[130px] mx-auto">
+                                                <button type="button" onclick="changeQty('{{ $item->id }}', -1)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-emerald-100 hover:text-emerald-800 transition-colors shrink-0 flex items-center justify-center text-sm">-</button>
+                                                <input type="number" id="qty-input-{{ $item->id }}" value="{{ $item->quantity }}" min="1" onchange="submitQty('{{ $item->id }}', this.value)"
+                                                    class="w-14 px-2 py-1.5 border border-slate-200 rounded-lg text-center text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 font-bold">
+                                                <button type="button" onclick="changeQty('{{ $item->id }}', 1)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-emerald-100 hover:text-emerald-800 transition-colors shrink-0 flex items-center justify-center text-sm">+</button>
+                                            </div>
                                         </td>
 
                                         <!-- Harga Seunit -->
@@ -88,7 +86,7 @@
                                         </td>
 
                                         <!-- Subtotal -->
-                                        <td class="p-5 pr-6 text-right font-bold text-slate-800 text-sm">
+                                        <td class="p-5 pr-6 text-right font-bold text-slate-800 text-sm" id="item-subtotal-{{ $item->id }}">
                                             RM{{ number_format($item->subtotal, 2) }}
                                         </td>
                                     </tr>
@@ -130,18 +128,16 @@
                                                 </span>
                                             @endif
                                         </div>
-                                        <span class="font-bold text-emerald-800 text-sm">RM{{ number_format($item->subtotal, 2) }}</span>
+                                        <span class="font-bold text-emerald-800 text-sm" id="item-subtotal-mobile-{{ $item->id }}">RM{{ number_format($item->subtotal, 2) }}</span>
                                     </div>
                                     <p class="text-xs text-slate-500">RM{{ number_format($item->unit_price, 2) }} / unit</p>
                                     <div class="flex items-center justify-between pt-1">
-                                        <form action="{{ route('cart.update', $item->id) }}" method="POST" class="flex items-center gap-2">
-                                            @csrf
-                                            <input type="number" name="quantity" value="{{ $item->quantity }}" min="1" required
-                                                   class="w-14 px-2 py-2 border border-slate-200 rounded-lg text-center text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600">
-                                            <button type="submit" class="bg-emerald-50 text-emerald-800 hover:bg-emerald-700 hover:text-white p-2 rounded-lg transition-all">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                            </button>
-                                        </form>
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button" onclick="changeQty('{{ $item->id }}', -1)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-emerald-100 hover:text-emerald-800 transition-colors shrink-0 flex items-center justify-center text-sm">-</button>
+                                            <input type="number" id="qty-input-mobile-{{ $item->id }}" value="{{ $item->quantity }}" min="1" onchange="submitQty('{{ $item->id }}', this.value)"
+                                                class="w-12 px-2 py-1.5 border border-slate-200 rounded-lg text-center text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 font-bold">
+                                            <button type="button" onclick="changeQty('{{ $item->id }}', 1)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-emerald-100 hover:text-emerald-800 transition-colors shrink-0 flex items-center justify-center text-sm">+</button>
+                                        </div>
                                         <form action="{{ route('cart.remove', $item->id) }}" method="POST">
                                             @csrf
                                             <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-semibold transition-colors py-2">
@@ -238,11 +234,6 @@
                         <div class="flex justify-between text-slate-600">
                             <span>Subtotal</span>
                             <span class="text-slate-800 font-bold" id="summary-subtotal">RM{{ number_format($subtotal, 2) }}</span>
-                        </div>
-
-                        <div class="flex justify-between text-slate-600">
-                            <span>Total Weight</span>
-                            <span class="text-slate-800 font-bold" id="summary-weight">{{ number_format($totalWeight, 2) }} kg</span>
                         </div>
 
                         <div id="coupon-row" class="{{ $appliedCoupon ? '' : 'hidden' }}">
@@ -362,7 +353,6 @@
     // Instant client-side summary calculation from checked checkboxes
     function recalculateClientSummary() {
         let subtotal = 0;
-        let weight = 0;
         const processedIds = new Set();
 
         document.querySelectorAll('.item-checkbox:checked').forEach(cb => {
@@ -370,15 +360,11 @@
             if (!processedIds.has(itemId)) {
                 processedIds.add(itemId);
                 subtotal += parseFloat(cb.dataset.price || 0);
-                weight += parseFloat(cb.dataset.weight || 0);
             }
         });
 
         const subtotalEl = document.getElementById('summary-subtotal');
         if (subtotalEl) subtotalEl.textContent = 'RM' + subtotal.toFixed(2);
-
-        const weightEl = document.getElementById('summary-weight');
-        if (weightEl) weightEl.textContent = weight.toFixed(2) + ' kg';
 
         const totalEl = document.getElementById('summary-total');
         const discountEl = document.getElementById('summary-discount');
@@ -410,9 +396,6 @@
                 const subtotalEl = document.getElementById('summary-subtotal');
                 if (subtotalEl) subtotalEl.textContent = 'RM' + data.subtotal;
 
-                const weightEl = document.getElementById('summary-weight');
-                if (weightEl) weightEl.textContent = data.total_weight_formatted || (data.total_weight + ' kg');
-
                 const discountEl = document.getElementById('summary-discount');
                 const couponRow = document.getElementById('coupon-row');
                 if (parseFloat(data.discount) > 0) {
@@ -427,6 +410,76 @@
             }
         })
         .catch(() => {});
+    }
+
+    let updateTimeouts = {};
+
+    function changeQty(itemId, delta) {
+        const desktopInput = document.getElementById('qty-input-' + itemId);
+        const mobileInput  = document.getElementById('qty-input-mobile-' + itemId);
+        const currentVal   = parseInt(desktopInput ? desktopInput.value : (mobileInput ? mobileInput.value : 1)) || 1;
+        const newQty       = Math.max(1, currentVal + delta);
+
+        if (desktopInput) desktopInput.value = newQty;
+        if (mobileInput)  mobileInput.value  = newQty;
+
+        submitQty(itemId, newQty);
+    }
+
+    function submitQty(itemId, quantity) {
+        const qty = parseInt(quantity) || 1;
+        if (qty < 1) return;
+
+        // Sync inputs
+        const desktopInput = document.getElementById('qty-input-' + itemId);
+        const mobileInput  = document.getElementById('qty-input-mobile-' + itemId);
+        if (desktopInput) desktopInput.value = qty;
+        if (mobileInput)  mobileInput.value  = qty;
+
+        if (updateTimeouts[itemId]) clearTimeout(updateTimeouts[itemId]);
+
+        updateTimeouts[itemId] = setTimeout(function () {
+            fetch('/cart/update/' + itemId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ quantity: qty })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Update item subtotal in DOM
+                    const desktopSubtotal = document.getElementById('item-subtotal-' + itemId);
+                    const mobileSubtotal  = document.getElementById('item-subtotal-mobile-' + itemId);
+                    if (desktopSubtotal) desktopSubtotal.textContent = 'RM' + data.item_subtotal;
+                    if (mobileSubtotal)  mobileSubtotal.textContent  = 'RM' + data.item_subtotal;
+
+                    // Update data-price attribute on checkboxes
+                    document.querySelectorAll(`.item-checkbox[data-item-id="${itemId}"], .item-checkbox[value="${itemId}"]`).forEach(cb => {
+                        cb.dataset.price  = parseFloat(data.item_subtotal.replace(/,/g, ''));
+                        cb.dataset.weight = data.item_weight;
+                    });
+
+                    // Update summary totals
+                    const subtotalEl = document.getElementById('summary-subtotal');
+                    if (subtotalEl) subtotalEl.textContent = 'RM' + data.subtotal;
+
+                    const totalEl = document.getElementById('summary-total');
+                    if (totalEl) totalEl.textContent = 'RM' + data.total;
+
+                    const discountEl = document.getElementById('summary-discount');
+                    if (discountEl && parseFloat(data.discount) > 0) {
+                        discountEl.textContent = '-RM' + data.discount;
+                    }
+                } else if (data.message) {
+                    alert(data.message);
+                }
+            })
+            .catch(err => console.error('Cart update error:', err));
+        }, 300);
     }
 
     function proceedToCheckout() {
