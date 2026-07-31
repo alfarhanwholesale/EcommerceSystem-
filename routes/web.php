@@ -59,8 +59,10 @@ Route::get('/checkout/success/{id?}', [CheckoutController::class, 'success'])->n
 Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
 
 // Online Banking (FPX) & eWallet payment via gateway (Guest & Auth)
-Route::get('/checkout/payment/{order_id}', [PaymentController::class, 'checkout'])->name('checkout.payment');
+// IMPORTANT: /status route must be declared BEFORE /{order_id} to avoid Laravel
+// matching "status" as the {order_id} wildcard parameter (causes 404)
 Route::get('/checkout/payment/status', [PaymentController::class, 'status'])->name('checkout.payment.status');
+Route::get('/checkout/payment/{order_id}', [PaymentController::class, 'checkout'])->name('checkout.payment');
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Authentication Routes
