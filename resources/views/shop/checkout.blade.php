@@ -258,7 +258,7 @@
 
                     <!-- Shipping Row -->
                     <div id="shipping-fee-row" class="flex justify-between text-slate-600 hidden">
-                        <span>Penghantaran (<span id="shipping-courier-name">-</span>)</span>
+                        <span>Harga Kurier</span>
                         <span id="shipping-fee-amount" class="text-slate-800 font-bold">RM0.00</span>
                     </div>
 
@@ -306,7 +306,6 @@
         const shippingCostInput       = document.getElementById('shipping_cost');
         const shippingMethodInput     = document.getElementById('shipping_method');
         const shippingFeeRow          = document.getElementById('shipping-fee-row');
-        const shippingCourierNameSpan = document.getElementById('shipping-courier-name');
         const shippingFeeAmountSpan   = document.getElementById('shipping-fee-amount');
         const grandTotalTextSpan      = document.getElementById('grand-total-display');
         const checkoutSubmitBtn       = document.getElementById('checkout-submit-btn');
@@ -380,11 +379,10 @@
             shippingCourierInput.value         = rate.courier_name;
             shippingServiceInput.value         = rate.service_name;
             shippingCostInput.value            = price.toFixed(2);
-            shippingCourierNameSpan.textContent = rate.courier_name;
             shippingFeeAmountSpan.textContent   = 'RM' + price.toFixed(2);
             shippingFeeRow.classList.remove('hidden');
 
-            if (courierDetailText) courierDetailText.textContent = rate.courier_name + ' (' + rate.delivery + ')';
+            if (courierDetailText) courierDetailText.textContent = rate.delivery ? '(' + rate.delivery + ')' : 'Penghantaran Standard';
             if (courierPriceText)  courierPriceText.textContent  = 'RM' + price.toFixed(2);
 
             updateTotals(price);
