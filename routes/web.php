@@ -147,6 +147,7 @@ Route::middleware('auth')->group(function () {
             // Storekeeper Role: Order Fulfillment
             Route::get('/orders', [AdminController::class, 'orderList'])->name('admin.orders');
             Route::post('/orders/{id}/status', [AdminController::class, 'updateOrderStatus'])->name('admin.orders.status');
+            Route::post('/orders/{id}/shipping', [AdminController::class, 'updateShipping'])->name('admin.orders.shipping');
             Route::post('/orders/{id}/book-courier', [AdminController::class, 'bookCourier'])->name('admin.orders.book_courier');
 
             // Reports View

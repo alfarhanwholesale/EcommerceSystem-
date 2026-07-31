@@ -56,11 +56,12 @@ class AdminController extends Controller
                                ->sum('final_amount');
         // Only count real orders (exclude abandoned online payment attempts)
         $orderCount = Order::whereNot($unpaidOnlineFilter)->count();
-        // Pending orders for dashboard = COD pending only (online pending means unpaid = excluded)
-        $pendingOrders = Order::where('status', 'pending')
+        // Pending orders for dashboard = COD pending + paid online orders that need fulfillment
+        $pendingOrders = Order::with('items.product')
                               ->whereNot($unpaidOnlineFilter)
+                              ->whereIn('status', ['pending', 'paid'])
                               ->orderBy('created_at', 'desc')
-                              ->take(5)
+                              ->take(10)
                               ->get();
 
         // Stock alerts
@@ -438,6 +439,28 @@ class AdminController extends Controller
         $order->save();
 
         return back()->with('success', 'Order status updated to ' . ucfirst($request->status) . '.');
+    }
+
+    // Manually update tracking number and courier name (without EasyParcel)
+    public function updateShipping(Request $request, $id)
+    {
+        $this->checkAccess(['admin', 'storekeeper']);
+
+        $request->validate([
+            'shipping_courier' => 'nullable|string|max:100',
+            'tracking_code'    => 'nullable|string|max:100',
+        ]);
+
+        $order = Order::findOrFail($id);
+        if ($request->filled('shipping_courier')) {
+            $order->shipping_courier = $request->shipping_courier;
+        }
+        if ($request->filled('tracking_code')) {
+            $order->tracking_code = $request->tracking_code;
+        }
+        $order->save();
+
+        return back()->with('success', 'Maklumat penghantaran untuk Order #' . str_pad($id, 6, '0', STR_PAD_LEFT) . ' telah dikemaskini.');
     }
 
     // Book shipment with EasyParcel

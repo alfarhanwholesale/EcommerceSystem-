@@ -96,6 +96,7 @@
                                 @csrf
                                 <select name="status" class="px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
                                     <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>Pending</option>
+                                    <option value="paid" {{ $order->status == 'paid' ? 'selected' : '' }}>Paid</option>
                                     <option value="processing" {{ $order->status == 'processing' ? 'selected' : '' }}>Processing</option>
                                     <option value="completed" {{ $order->status == 'completed' ? 'selected' : '' }}>Completed</option>
                                     <option value="cancelled" {{ $order->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
@@ -104,12 +105,46 @@
                                     Update
                                 </button>
                             </form>
+
+                            {{-- Manual Shipping Info Toggle --}}
+                            <div class="mt-2">
+                                <button type="button"
+                                    onclick="document.getElementById('ship-form-{{ $order->id }}').classList.toggle('hidden')"
+                                    class="text-[10px] text-slate-500 hover:text-slate-800 font-semibold underline w-full text-right">
+                                    {{ $order->tracking_code ? '✏️ Edit Tracking' : '📦 Isi No Tracking / Kurier' }}
+                                </button>
+
+                                <div id="ship-form-{{ $order->id }}" class="hidden mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 text-left">
+                                    <p class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Maklumat Penghantaran</p>
+                                    <form action="{{ route('admin.orders.shipping', $order->id) }}" method="POST" class="space-y-2">
+                                        @csrf
+                                        <div>
+                                            <label class="text-[10px] text-slate-500 font-semibold block mb-0.5">Nama Kurier</label>
+                                            <input type="text" name="shipping_courier"
+                                                value="{{ $order->shipping_courier }}"
+                                                placeholder="cth: Pos Laju, J&T, DHL..."
+                                                class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] text-slate-500 font-semibold block mb-0.5">No Tracking</label>
+                                            <input type="text" name="tracking_code"
+                                                value="{{ $order->tracking_code }}"
+                                                placeholder="cth: EP123456789MY"
+                                                class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                        </div>
+                                        <button type="submit" class="w-full bg-indigo-700 hover:bg-indigo-900 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition-colors">
+                                            Simpan Maklumat
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
                             @if($order->order_type === 'online' && $order->shipping_courier && !$order->tracking_code)
                                 <form action="{{ route('admin.orders.book_courier', $order->id) }}" method="POST" class="mt-2 flex justify-end">
                                     @csrf
-                                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-800 text-white text-[10px] px-2.5 py-1.5 rounded-lg transition-colors font-bold shadow-xs flex items-center gap-1">
+                                    <button type="submit" class="bg-slate-600 hover:bg-slate-800 text-white text-[10px] px-2.5 py-1.5 rounded-lg transition-colors font-bold shadow-xs flex items-center gap-1">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                                        Tempah Kurier
+                                        Auto EasyParcel
                                     </button>
                                 </form>
                             @endif

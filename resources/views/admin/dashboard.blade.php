@@ -191,30 +191,38 @@
             </div>
         @endif
 
-        <!-- ROLE: STOREKEEPER PANEL (Fulfill Pending Orders) -->
+        <!-- ROLE: STOREKEEPER PANEL (Fulfill Pending & Paid Orders) -->
         @if(in_array($user->role, ['admin', 'storekeeper']))
             <div class="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
                 <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                     <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <span>📋</span> Pending Fulfillments
+                        <span>📋</span> Perlu Tindakan
+                        @if($pendingOrders->isNotEmpty())
+                            <span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{{ $pendingOrders->count() }}</span>
+                        @endif
                     </h3>
                     <a href="{{ route('admin.orders') }}" class="text-emerald-700 hover:text-emerald-950 font-bold text-xs">
-                        View All Orders →
+                        Lihat Semua Pesanan →
                     </a>
                 </div>
 
                 @if($pendingOrders->isEmpty())
-                    <p class="text-slate-500 text-sm text-center py-6">All set! No orders are currently in pending state.</p>
+                    <p class="text-slate-500 text-sm text-center py-6">Tiada pesanan menunggu tindakan.</p>
                 @else
                     <div class="divide-y divide-slate-100">
                         @foreach($pendingOrders as $order)
                             <div class="py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-sm font-medium">
                                 <div class="space-y-1">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
                                         <span class="font-bold text-slate-900">Order #{{ str_pad($order->id, 5, '0', STR_PAD_LEFT) }}</span>
                                         <span class="bg-indigo-100 text-indigo-800 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">{{ $order->order_type }}</span>
+                                        @if($order->status === 'paid')
+                                            <span class="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">✓ Dah Bayar</span>
+                                        @else
+                                            <span class="bg-amber-100 text-amber-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">COD</span>
+                                        @endif
                                     </div>
-                                    <p class="text-xs text-slate-500">Buyer: {{ $order->customer_name }} | {{ $order->created_at->diffForHumans() }}</p>
+                                    <p class="text-xs text-slate-500">Pembeli: {{ $order->customer_name }} | {{ $order->created_at->diffForHumans() }}</p>
                                     <p class="text-xs text-emerald-800 font-semibold max-w-sm truncate">
                                         Items: 
                                         @foreach($order->items as $item)
@@ -227,12 +235,13 @@
                                     @csrf
                                     <select name="status" class="px-2 py-1 border border-slate-200 rounded text-xs bg-white">
                                         <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>Pending</option>
+                                        <option value="paid" {{ $order->status == 'paid' ? 'selected' : '' }}>Paid</option>
                                         <option value="processing" {{ $order->status == 'processing' ? 'selected' : '' }}>Processing</option>
                                         <option value="completed" {{ $order->status == 'completed' ? 'selected' : '' }}>Completed</option>
                                         <option value="cancelled" {{ $order->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                                     </select>
                                     <button type="submit" class="bg-emerald-800 hover:bg-emerald-950 text-white text-xs px-2.5 py-1.5 rounded transition-all font-bold">
-                                        Update
+                                        Kemaskini
                                     </button>
                                 </form>
                             </div>
