@@ -33,11 +33,35 @@ class AdminController extends Controller
         }
 
         // Stats for Admin Overview
-        $totalRevenue = Order::where('status', '!=', 'cancelled')->sum('final_amount');
-        $onlineRevenue = Order::where('order_type', 'online')->where('status', '!=', 'cancelled')->sum('final_amount');
-        $outdoorRevenue = Order::where('order_type', 'outdoor')->where('status', '!=', 'cancelled')->sum('final_amount');
-        $orderCount = Order::count();
-        $pendingOrders = Order::where('status', 'pending')->orderBy('created_at', 'desc')->take(5)->get();
+        // Exclude unpaid online orders (order_type=online, status=pending, paid_at=null)
+        // These are abandoned payment attempts — user never completed payment at gateway
+        $unpaidOnlineFilter = function ($q) {
+            $q->where(function ($inner) {
+                // Exclude online orders that are pending with no paid_at (abandoned)
+                $inner->where('order_type', 'online')
+                      ->where('status', 'pending')
+                      ->whereNull('paid_at');
+            });
+        };
+
+        $totalRevenue = Order::where('status', '!=', 'cancelled')
+                             ->whereNot($unpaidOnlineFilter)
+                             ->sum('final_amount');
+        $onlineRevenue = Order::where('order_type', 'online')
+                              ->where('status', '!=', 'cancelled')
+                              ->whereNot($unpaidOnlineFilter)
+                              ->sum('final_amount');
+        $outdoorRevenue = Order::where('order_type', 'outdoor')
+                               ->where('status', '!=', 'cancelled')
+                               ->sum('final_amount');
+        // Only count real orders (exclude abandoned online payment attempts)
+        $orderCount = Order::whereNot($unpaidOnlineFilter)->count();
+        // Pending orders for dashboard = COD pending only (online pending means unpaid = excluded)
+        $pendingOrders = Order::where('status', 'pending')
+                              ->whereNot($unpaidOnlineFilter)
+                              ->orderBy('created_at', 'desc')
+                              ->take(5)
+                              ->get();
 
         // Stock alerts
         $lowStockProducts = Product::where('stock', '<', 10)->whereDoesntHave('variations')->get();
@@ -385,7 +409,16 @@ class AdminController extends Controller
     public function orderList()
     {
         $this->checkAccess(['admin', 'storekeeper']);
-        $orders = Order::with('items.product')->orderBy('created_at', 'desc')->paginate(10);
+        // Exclude abandoned online payment orders (online, pending, paid_at null)
+        // These are orders where user initiated online payment but never completed it
+        $orders = Order::with('items.product')
+                       ->where(function ($q) {
+                           $q->where('order_type', '!=', 'online')
+                             ->orWhere('status', '!=', 'pending')
+                             ->orWhereNotNull('paid_at');
+                       })
+                       ->orderBy('created_at', 'desc')
+                       ->paginate(10);
         return view('admin.orders.index', compact('orders'));
     }
 
