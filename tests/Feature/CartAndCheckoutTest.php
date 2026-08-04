@@ -180,7 +180,7 @@ class CartAndCheckoutTest extends TestCase
                             [
                                 'service_id'   => 'EP-SERVICE-1',
                                 'service_name' => 'Next Day Delivery',
-                                'courier_name' => 'Pos Laju Live',
+                                'courier_name' => 'Kurier Standard Live',
                                 'price'        => '9.90',
                                 'delivery'     => '1-2 days',
                             ]
@@ -201,7 +201,7 @@ class CartAndCheckoutTest extends TestCase
 
         $rates = $service->getRates('47100', 1.0, 'Selangor');
         $this->assertNotEmpty($rates);
-        $this->assertEquals('Pos Laju Live', $rates[0]['courier_name']);
+        $this->assertEquals('Kurier Standard Live', $rates[0]['courier_name']);
         $this->assertTrue($rates[0]['is_live']);
     }
 }

@@ -39,14 +39,16 @@
                             <span class="font-bold text-slate-800 block">{{ $order->customer_name }}</span>
                             <span class="text-xs text-slate-500 block">{{ $order->customer_phone }}</span>
                             <span class="text-[10px] text-slate-400 block max-w-[150px] truncate" title="{{ $order->delivery_address }}">{{ $order->delivery_address }}</span>
-                            @if($order->shipping_courier)
-                                <span class="text-[10px] text-slate-600 block mt-1 font-bold">
-                                    🚚 {{ $order->shipping_courier }} (RM{{ number_format($order->shipping_cost, 2) }})
-                                </span>
+                            @if($order->shipping_courier || $order->tracking_code)
+                                @if($order->shipping_courier)
+                                    <span class="text-[10px] text-slate-600 block mt-1 font-bold">
+                                        🚚 {{ $order->shipping_courier }} @if($order->shipping_cost > 0)(RM{{ number_format($order->shipping_cost, 2) }})@endif
+                                    </span>
+                                @endif
                                 @if($order->tracking_code)
-                                    <a href="https://easyparcel.com/my/en/track/?noc=2&cno={{ $order->tracking_code }}" target="_blank" class="text-[9px] text-emerald-700 hover:text-emerald-950 font-bold block mt-0.5 underline">
+                                    <span class="text-[9px] text-emerald-700 font-bold block mt-0.5">
                                         Tracking: {{ $order->tracking_code }}
-                                    </a>
+                                    </span>
                                 @endif
                             @endif
                         </td>
@@ -122,7 +124,7 @@
                                             <label class="text-[10px] text-slate-500 font-semibold block mb-0.5">Nama Kurier</label>
                                             <input type="text" name="shipping_courier"
                                                 value="{{ $order->shipping_courier }}"
-                                                placeholder="cth: Pos Laju, J&T, DHL..."
+                                                placeholder="cth: J&T, NinjaVan, DHL, Pos Malaysia..."
                                                 class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
                                         </div>
                                         <div>

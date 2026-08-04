@@ -452,11 +452,11 @@ class AdminController extends Controller
         ]);
 
         $order = Order::findOrFail($id);
-        if ($request->filled('shipping_courier')) {
-            $order->shipping_courier = $request->shipping_courier;
+        if ($request->has('shipping_courier')) {
+            $order->shipping_courier = trim($request->input('shipping_courier'));
         }
-        if ($request->filled('tracking_code')) {
-            $order->tracking_code = $request->tracking_code;
+        if ($request->has('tracking_code')) {
+            $order->tracking_code = trim($request->input('tracking_code'));
         }
         $order->save();
 

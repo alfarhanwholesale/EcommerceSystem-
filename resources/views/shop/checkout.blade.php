@@ -376,7 +376,7 @@
             const rate  = rates[0];
             const price = parseFloat(rate.price);
 
-            // Do NOT save courier company name (e.g. "Pos Laju") — admin will set this manually
+            // Do NOT save courier company name — admin will set this manually
             shippingCourierInput.value         = '';
             shippingServiceInput.value         = rate.service_name;
             shippingCostInput.value            = price.toFixed(2);

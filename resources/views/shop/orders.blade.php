@@ -46,9 +46,9 @@
                                 @foreach($order->items as $item)
                                     {{ $item->product->name }} (x{{ $item->quantity }}){{ !$loop->last ? ', ' : '' }}
                                 @endforeach
-                                @if($order->tracking_code)
+                                @if($order->shipping_courier || $order->tracking_code)
                                     <span class="block text-[10px] text-emerald-700 font-bold mt-1">
-                                        🚚 Tracking: {{ $order->tracking_code }}
+                                        🚚 @if($order->shipping_courier)[{{ $order->shipping_courier }}] @endif @if($order->tracking_code)Tracking: {{ $order->tracking_code }}@endif
                                     </span>
                                 @endif
                             </td>
@@ -122,9 +122,9 @@
                             <p>{{ $item->product->name }} <span class="text-emerald-700 font-bold">x{{ $item->quantity }}</span></p>
                         @endforeach
 
-                        @if($order->tracking_code)
+                        @if($order->shipping_courier || $order->tracking_code)
                             <div class="mt-2 text-[10px] text-emerald-700 bg-emerald-50 p-2 rounded-md border border-emerald-100 font-bold">
-                                🚚 Tracking: {{ $order->tracking_code }}
+                                🚚 @if($order->shipping_courier)[{{ $order->shipping_courier }}] @endif @if($order->tracking_code)Tracking: {{ $order->tracking_code }}@endif
                             </div>
                         @endif
                     </div>

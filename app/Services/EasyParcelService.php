@@ -269,31 +269,31 @@ class EasyParcelService
         $rateTable = [
             // ── Zon 1: Klang Valley ────────────────────────────────────────
             1 => [
-                ['id' => 'POSLAJU',  'name' => 'Pos Laju',       'base' => 6.10,  'inc' => 1.50, 'days' => '1-2 hari bekerja'],
-                ['id' => 'JANDT',    'name' => 'J&T Express',    'base' => 5.30,  'inc' => 1.20, 'days' => '1-2 hari bekerja'],
-                ['id' => 'NINJAVAN', 'name' => 'Ninja Van',      'base' => 5.50,  'inc' => 1.30, 'days' => '1-2 hari bekerja'],
-                ['id' => 'DHL',      'name' => 'DHL eCommerce', 'base' => 6.50,  'inc' => 1.50, 'days' => '1-3 hari bekerja'],
+                ['id' => 'KURIER_STD', 'name' => 'Kurier Standard', 'base' => 6.10,  'inc' => 1.50, 'days' => '1-2 hari bekerja'],
+                ['id' => 'JANDT',      'name' => 'J&T Express',      'base' => 5.30,  'inc' => 1.20, 'days' => '1-2 hari bekerja'],
+                ['id' => 'NINJAVAN',   'name' => 'Ninja Van',        'base' => 5.50,  'inc' => 1.30, 'days' => '1-2 hari bekerja'],
+                ['id' => 'DHL',        'name' => 'DHL eCommerce',   'base' => 6.50,  'inc' => 1.50, 'days' => '1-3 hari bekerja'],
             ],
             // ── Zon 2: Central Peninsular ──────────────────────────────────
             2 => [
-                ['id' => 'POSLAJU',  'name' => 'Pos Laju',       'base' => 7.00,  'inc' => 1.70, 'days' => '2-3 hari bekerja'],
-                ['id' => 'JANDT',    'name' => 'J&T Express',    'base' => 6.20,  'inc' => 1.40, 'days' => '1-2 hari bekerja'],
-                ['id' => 'NINJAVAN', 'name' => 'Ninja Van',      'base' => 6.50,  'inc' => 1.60, 'days' => '2-3 hari bekerja'],
-                ['id' => 'DHL',      'name' => 'DHL eCommerce', 'base' => 7.30,  'inc' => 1.70, 'days' => '2-4 hari bekerja'],
+                ['id' => 'KURIER_STD', 'name' => 'Kurier Standard', 'base' => 7.00,  'inc' => 1.70, 'days' => '2-3 hari bekerja'],
+                ['id' => 'JANDT',      'name' => 'J&T Express',      'base' => 6.20,  'inc' => 1.40, 'days' => '1-2 hari bekerja'],
+                ['id' => 'NINJAVAN',   'name' => 'Ninja Van',        'base' => 6.50,  'inc' => 1.60, 'days' => '2-3 hari bekerja'],
+                ['id' => 'DHL',        'name' => 'DHL eCommerce',   'base' => 7.30,  'inc' => 1.70, 'days' => '2-4 hari bekerja'],
             ],
             // ── Zon 3: North/South Peninsular ─────────────────────────────
             3 => [
-                ['id' => 'POSLAJU',  'name' => 'Pos Laju',       'base' => 8.70,  'inc' => 2.00, 'days' => '2-4 hari bekerja'],
-                ['id' => 'JANDT',    'name' => 'J&T Express',    'base' => 7.90,  'inc' => 1.80, 'days' => '2-3 hari bekerja'],
-                ['id' => 'NINJAVAN', 'name' => 'Ninja Van',      'base' => 8.20,  'inc' => 2.00, 'days' => '2-4 hari bekerja'],
-                ['id' => 'DHL',      'name' => 'DHL eCommerce', 'base' => 9.00,  'inc' => 2.10, 'days' => '3-5 hari bekerja'],
+                ['id' => 'KURIER_STD', 'name' => 'Kurier Standard', 'base' => 8.70,  'inc' => 2.00, 'days' => '2-4 hari bekerja'],
+                ['id' => 'JANDT',      'name' => 'J&T Express',      'base' => 7.90,  'inc' => 1.80, 'days' => '2-3 hari bekerja'],
+                ['id' => 'NINJAVAN',   'name' => 'Ninja Van',        'base' => 8.20,  'inc' => 2.00, 'days' => '2-4 hari bekerja'],
+                ['id' => 'DHL',        'name' => 'DHL eCommerce',   'base' => 9.00,  'inc' => 2.10, 'days' => '3-5 hari bekerja'],
             ],
             // ── Zon 4: East Malaysia ───────────────────────────────────────
             4 => [
-                ['id' => 'POSLAJU',  'name' => 'Pos Laju',       'base' => 12.50, 'inc' => 4.50, 'days' => '3-7 hari bekerja'],
-                ['id' => 'JANDT',    'name' => 'J&T Express',    'base' => 14.80, 'inc' => 4.50, 'days' => '3-5 hari bekerja'],
-                ['id' => 'NINJAVAN', 'name' => 'Ninja Van',      'base' => 13.00, 'inc' => 4.80, 'days' => '3-6 hari bekerja'],
-                ['id' => 'DHL',      'name' => 'DHL eCommerce', 'base' => 15.00, 'inc' => 5.00, 'days' => '4-7 hari bekerja'],
+                ['id' => 'KURIER_STD', 'name' => 'Kurier Standard', 'base' => 12.50, 'inc' => 4.50, 'days' => '3-7 hari bekerja'],
+                ['id' => 'JANDT',      'name' => 'J&T Express',      'base' => 14.80, 'inc' => 4.50, 'days' => '3-5 hari bekerja'],
+                ['id' => 'NINJAVAN',   'name' => 'Ninja Van',        'base' => 13.00, 'inc' => 4.80, 'days' => '3-6 hari bekerja'],
+                ['id' => 'DHL',        'name' => 'DHL eCommerce',   'base' => 15.00, 'inc' => 5.00, 'days' => '4-7 hari bekerja'],
             ],
         ];
 
