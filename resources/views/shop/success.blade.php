@@ -46,22 +46,21 @@
                 <p class="mt-1">{{ $order->delivery_address }}</p>
             </div>
 
-            @if($order->shipping_courier || $order->tracking_code)
+            @if($order->order_type !== 'pickup')
                 <div class="mt-4 border-t border-emerald-100/50 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-medium">
                     <div>
                         <span class="text-slate-500 block text-xs uppercase font-bold">Kurier / Penghantaran</span>
-                        <p class="text-slate-800 font-bold mt-0.5">
-                            {{ $order->shipping_courier ?: 'Kurier Standard' }}
-                            @if($order->shipping_service)
-                                ({{ $order->shipping_service }})
-                            @endif
-                        </p>
+                        @if($order->shipping_courier && $order->shipping_courier !== 'Self Pickup')
+                            <p class="text-slate-800 font-bold mt-0.5">🚚 {{ $order->shipping_courier }}</p>
+                        @else
+                            <span class="text-slate-500 italic text-xs mt-0.5 block">Akan ditentukan oleh admin</span>
+                        @endif
                     </div>
                     <div>
                         <span class="text-slate-500 block text-xs uppercase font-bold">No. Tracking / Resi</span>
                         @if($order->tracking_code)
                             <span class="text-emerald-700 font-bold block mt-0.5 text-base">
-                                🚚 {{ $order->tracking_code }}
+                                {{ $order->tracking_code }}
                             </span>
                         @else
                             <span class="text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-xs font-semibold inline-block mt-0.5 border border-amber-100">Proses pembungkusan (No. tracking belum dimasukkan)</span>
@@ -109,7 +108,7 @@
                 @endif
                 @if($order->shipping_cost > 0)
                     <tr class="bg-slate-50/60 border-t border-slate-100 font-bold text-xs uppercase tracking-wider text-slate-600">
-                        <td colspan="2" class="p-4 pl-6 text-right">Shipping Fee @if($order->shipping_courier)({{ $order->shipping_courier }})@endif</td>
+                        <td colspan="2" class="p-4 pl-6 text-right">Kos Penghantaran</td>
                         <td class="p-4 text-right pr-6">RM{{ number_format($order->shipping_cost, 2) }}</td>
                     </tr>
                 @endif

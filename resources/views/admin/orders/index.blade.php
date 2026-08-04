@@ -40,16 +40,22 @@
                             <span class="text-xs text-slate-500 block">{{ $order->customer_phone }}</span>
                             <span class="text-[10px] text-slate-400 block max-w-[150px] truncate" title="{{ $order->delivery_address }}">{{ $order->delivery_address }}</span>
                             @if($order->shipping_courier || $order->tracking_code)
-                                @if($order->shipping_courier)
-                                    <span class="text-[10px] text-slate-600 block mt-1 font-bold">
-                                        🚚 {{ $order->shipping_courier }} @if($order->shipping_cost > 0)(RM{{ number_format($order->shipping_cost, 2) }})@endif
-                                    </span>
-                                @endif
-                                @if($order->tracking_code)
-                                    <span class="text-[9px] text-emerald-700 font-bold block mt-0.5">
-                                        Tracking: {{ $order->tracking_code }}
-                                    </span>
-                                @endif
+                                <div class="mt-1.5 p-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-[10px]">
+                                    @if($order->shipping_courier)
+                                        <span class="text-emerald-950 block font-bold">
+                                            🚚 Kurier: {{ $order->shipping_courier }}
+                                        </span>
+                                    @endif
+                                    @if($order->tracking_code)
+                                        <span class="text-emerald-700 block font-bold mt-0.5">
+                                            📦 Tracking: {{ $order->tracking_code }}
+                                        </span>
+                                    @endif
+                                </div>
+                            @else
+                                <span class="text-[9px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block mt-1 font-semibold">
+                                    ⚠️ Kurier & Tracking belum diisi
+                                </span>
                             @endif
                         </td>
 
@@ -113,10 +119,10 @@
                                 <button type="button"
                                     onclick="document.getElementById('ship-form-{{ $order->id }}').classList.toggle('hidden')"
                                     class="text-[10px] text-slate-500 hover:text-slate-800 font-semibold underline w-full text-right">
-                                    {{ $order->tracking_code ? '✏️ Edit Tracking' : '📦 Isi No Tracking / Kurier' }}
+                                    {{ $order->tracking_code || $order->shipping_courier ? '✏️ Edit Tracking & Kurier' : '📦 Isi No Tracking / Kurier' }}
                                 </button>
 
-                                <div id="ship-form-{{ $order->id }}" class="hidden mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 text-left">
+                                <div id="ship-form-{{ $order->id }}" class="hidden mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 text-left shadow-md">
                                     <p class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Maklumat Penghantaran</p>
                                     <form action="{{ route('admin.orders.shipping', $order->id) }}" method="POST" class="space-y-2">
                                         @csrf
@@ -131,25 +137,15 @@
                                             <label class="text-[10px] text-slate-500 font-semibold block mb-0.5">No Tracking</label>
                                             <input type="text" name="tracking_code"
                                                 value="{{ $order->tracking_code }}"
-                                                placeholder="cth: EP123456789MY"
+                                                placeholder="cth: JT12345678MY"
                                                 class="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
                                         </div>
-                                        <button type="submit" class="w-full bg-indigo-700 hover:bg-indigo-900 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition-colors">
+                                        <button type="submit" style="background-color: #047857; color: #ffffff; cursor: pointer;" class="w-full text-white text-xs px-3 py-2 rounded-lg font-bold shadow-sm transition-all hover:opacity-90">
                                             Simpan Maklumat
                                         </button>
                                     </form>
                                 </div>
                             </div>
-
-                            @if($order->order_type === 'online' && $order->shipping_courier && !$order->tracking_code)
-                                <form action="{{ route('admin.orders.book_courier', $order->id) }}" method="POST" class="mt-2 flex justify-end">
-                                    @csrf
-                                    <button type="submit" class="bg-slate-600 hover:bg-slate-800 text-white text-[10px] px-2.5 py-1.5 rounded-lg transition-colors font-bold shadow-xs flex items-center gap-1">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                                        Auto EasyParcel
-                                    </button>
-                                </form>
-                            @endif
                         </td>
                     </tr>
                 @empty

@@ -151,17 +151,14 @@
                 </div>
             </div>
 
-            {{-- Courier Rate Card (Single Label "Harga Kurier") --}}
+            {{-- Shipping Fee Info Card (Admin will assign courier, user just pays fee) --}}
             <div id="courier-card" class="bg-white border border-emerald-100 rounded-2xl shadow-xs p-6 md:p-8 space-y-4">
                 <div class="flex items-center justify-between border-b border-emerald-50 pb-2">
-                    <h3 class="text-lg font-bold text-emerald-950">🚚 Harga Kurier</h3>
-                    <span id="courier-live-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase tracking-wide">● Live</span>
-                    <span id="courier-estimate-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wide">⚠ Taksiran</span>
+                    <h3 class="text-lg font-bold text-emerald-950">🚚 Kos Penghantaran</h3>
                 </div>
-                <p class="text-xs text-slate-500" id="courier-hint">Sila masukkan poskod (5 digit) dan pilih negeri untuk mengira harga kurier secara automatik.</p>
 
-                <input type="hidden" name="shipping_courier" id="shipping_courier">
-                <input type="hidden" name="shipping_service" id="shipping_service">
+                <input type="hidden" name="shipping_courier" id="shipping_courier" value="">
+                <input type="hidden" name="shipping_service" id="shipping_service" value="">
                 <input type="hidden" name="shipping_cost" id="shipping_cost" value="0.00">
 
                 <div id="courier-loading" class="hidden text-center py-4">
@@ -169,18 +166,25 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <p class="text-xs text-slate-500 mt-2 font-medium">Sedang mengira harga kurier...</p>
+                    <p class="text-xs text-slate-500 mt-2 font-medium">Sedang mengira kos penghantaran...</p>
                 </div>
 
                 <div id="courier-single-display" class="bg-emerald-50/80 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <span class="text-2xl">📦</span>
                         <div>
-                            <span class="block font-bold text-sm text-emerald-950">Harga Kurier</span>
-                            <span class="block text-xs text-slate-500" id="courier-detail-text">Dikira automatik mengikut poskod & negeri</span>
+                            <span class="block font-bold text-sm text-emerald-950">Kos Penghantaran</span>
+                            <span class="block text-xs text-slate-500" id="courier-detail-text">Dikira mengikut poskod & negeri</span>
                         </div>
                     </div>
                     <span class="font-extrabold text-base text-emerald-700" id="courier-price-text">RM0.00</span>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-2">
+                    <span class="text-blue-600 text-base mt-0.5">ℹ️</span>
+                    <p class="text-xs text-blue-700 leading-relaxed">
+                        <strong>Kurier akan dipilih oleh admin.</strong> Anda hanya perlu bayar kos penghantaran sahaja. Admin akan menentukan syarikat kurier dan nombor tracking selepas pembayaran disahkan.
+                    </p>
                 </div>
             </div>
 

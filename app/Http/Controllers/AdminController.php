@@ -452,12 +452,12 @@ class AdminController extends Controller
         ]);
 
         $order = Order::findOrFail($id);
-        if ($request->has('shipping_courier')) {
-            $order->shipping_courier = trim($request->input('shipping_courier'));
-        }
-        if ($request->has('tracking_code')) {
-            $order->tracking_code = trim($request->input('tracking_code'));
-        }
+
+        $courier = $request->input('shipping_courier');
+        $tracking = $request->input('tracking_code');
+
+        $order->shipping_courier = !empty(trim((string)$courier)) ? trim((string)$courier) : null;
+        $order->tracking_code    = !empty(trim((string)$tracking)) ? trim((string)$tracking) : null;
         $order->save();
 
         return back()->with('success', 'Maklumat penghantaran untuk Order #' . str_pad($id, 6, '0', STR_PAD_LEFT) . ' telah dikemaskini.');

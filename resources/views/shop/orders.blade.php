@@ -46,10 +46,17 @@
                                 @foreach($order->items as $item)
                                     {{ $item->product->name }} (x{{ $item->quantity }}){{ !$loop->last ? ', ' : '' }}
                                 @endforeach
-                                @if($order->shipping_courier || $order->tracking_code)
-                                    <span class="block text-[10px] text-emerald-700 font-bold mt-1">
-                                        🚚 @if($order->shipping_courier)[{{ $order->shipping_courier }}] @endif @if($order->tracking_code)Tracking: {{ $order->tracking_code }}@endif
-                                    </span>
+                                @if($order->order_type !== 'pickup')
+                                    @if($order->shipping_courier && $order->shipping_courier !== 'Self Pickup')
+                                        <span class="block text-[10px] text-emerald-700 font-bold mt-1">
+                                            🚚 {{ $order->shipping_courier }}
+                                            @if($order->tracking_code) | Tracking: {{ $order->tracking_code }}@endif
+                                        </span>
+                                    @elseif($order->tracking_code)
+                                        <span class="block text-[10px] text-emerald-700 font-bold mt-1">📦 Tracking: {{ $order->tracking_code }}</span>
+                                    @else
+                                        <span class="block text-[9px] text-amber-600 mt-1">Kurier akan ditentukan oleh admin</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="p-5 font-bold text-emerald-800">
@@ -122,10 +129,21 @@
                             <p>{{ $item->product->name }} <span class="text-emerald-700 font-bold">x{{ $item->quantity }}</span></p>
                         @endforeach
 
-                        @if($order->shipping_courier || $order->tracking_code)
-                            <div class="mt-2 text-[10px] text-emerald-700 bg-emerald-50 p-2 rounded-md border border-emerald-100 font-bold">
-                                🚚 @if($order->shipping_courier)[{{ $order->shipping_courier }}] @endif @if($order->tracking_code)Tracking: {{ $order->tracking_code }}@endif
-                            </div>
+                        @if($order->order_type !== 'pickup')
+                            @if($order->shipping_courier && $order->shipping_courier !== 'Self Pickup')
+                                <div class="mt-2 text-[10px] text-emerald-700 bg-emerald-50 p-2 rounded-md border border-emerald-100 font-bold">
+                                    🚚 Kurier: {{ $order->shipping_courier }}
+                                    @if($order->tracking_code)<br>📦 Tracking: {{ $order->tracking_code }}@endif
+                                </div>
+                            @elseif($order->tracking_code)
+                                <div class="mt-2 text-[10px] text-emerald-700 bg-emerald-50 p-2 rounded-md border border-emerald-100 font-bold">
+                                    📦 Tracking: {{ $order->tracking_code }}
+                                </div>
+                            @else
+                                <div class="mt-2 text-[9px] text-amber-700 bg-amber-50 p-2 rounded-md border border-amber-100 font-semibold">
+                                    ⏳ Kurier akan ditentukan oleh admin
+                                </div>
+                            @endif
                         @endif
                     </div>
 
